@@ -1,0 +1,87 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Позволяет запускать вручную из GitHub
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-22.04
+
+    steps:
+      # 1. Клонируем репозиторий
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Ставим Python
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. Кэшируем Buildozer + Android SDK/NDK (чтобы не качать каждый раз)
+      - name: Cache Buildozer global directory
+        uses: actions/cache@v4
+        with:
+          path: ~/.buildozer
+          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}-
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('requirements*.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-
+
+      # 4. Системные зависимости для Buildozer
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            python3-pip python3-venv git zip unzip \
+            openjdk-17-jdk \
+            autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            cmake libffi-dev libssl-dev \
+            ccache lld \
+            libltdl-dev
+
+      # 5. Устанавливаем Buildozer и Cython
+      - name: Install Buildozer and Cython
+        run: |
+          pip3 install --upgrade pip
+          pip3 install buildozer cython
+
+      # 6. Принимаем лицензии Android SDK автоматически
+      - name: Accept Android SDK licenses
+        run: |
+          mkdir -p ~/.buildozer/android/platform
+          yes | buildozer android debug 2>&1 | head -5 || true
+
+      # 7. Собираем APK
+      - name: Build debug APK
+        run: |
+          buildozer android debug
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+
+      # 8. Загружаем APK как артефакт (можно скачать из GitHub)
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nevpn-debug-apk
+          path: bin/*.apk
+          retention-days: 30
+
+      # 9. Показываем размер файла в логах
+      - name: Show APK info
+        run: |
+          echo "=== Готовые файлы ==="
+          ls -lh bin/*.apk
