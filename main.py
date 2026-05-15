@@ -4,20 +4,33 @@ from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.core.window import Window
 from kivymd.uix.list import OneLineAvatarIconListItem, IconRightWidget, ImageLeftWidget
+from kivy.logger import Logger
 from kivy.properties import StringProperty, BooleanProperty
 from kivy.metrics import dp
 from kivy.animation import Animation
 
 from kivy.utils import platform
-if platform != 'android':
-    Window.size = (360, 640)
+try:
+    if platform != 'android':
+        Window.size = (360, 640)
+except Exception:
+    pass
 
 import sys
 import traceback
 
 def handle_exception(exc_type, exc_value, exc_tb):
-    with open('/sdcard/nevpn_crash.txt', 'a') as f:
-        traceback.print_exception(exc_type, exc_value, exc_tb, file=f)
+    try:
+        from kivy.utils import platform
+        if platform == 'android':
+            from android.storage import primary_external_storage_path
+            path = primary_external_storage_path() + '/nevpn_crash.txt'
+        else:
+            path = '/sdcard/nevpn_crash.txt'
+        with open(path, 'a') as f:
+            traceback.print_exception(exc_type, exc_value, exc_tb, file=f)
+    except Exception:
+        pass
     sys.__excepthook__(exc_type, exc_value, exc_tb)
 
 sys.excepthook = handle_exception
@@ -212,8 +225,7 @@ WindowManager:
                             md_bg_color: 0.2, 0.4, 0.9, 1
                             elevation: 6
                             ripple_behavior: True
-                            on_touch_down:
-                                if self.collide_point(*args[1].pos): root.on_power_press(self)
+                            on_release: root.on_power_press(self)
 
                             AnchorLayout:
                                 MDIcon:
@@ -384,11 +396,14 @@ WindowManager:
                             size: "38dp", "38dp"
                             pos_hint: {"center_y": .5}
                             AnchorLayout:
-                                Image:
-                                    source: "images/ru_icon.png"
+                                MDIcon:
+                                    icon: "translate"
                                     size_hint: None, None
                                     size: "30dp", "30dp"
                                     pos_hint: {"center_x": .5, "center_y": .5}
+                                    theme_text_color: "Custom"
+                                    text_color: 0.25, 0.45, 0.9, 1
+                                    font_size: "22sp"
                         MDLabel:
                             text: "Язык"
                             theme_text_color: "Custom"
@@ -1013,7 +1028,10 @@ class MainScreen(Screen):
             power_button.md_bg_color = (0.2, 0.4, 0.9, 1)
 
     def on_kv_post(self, base_widget):
-        self.update_ui()
+        try:
+            self.update_ui()
+        except Exception:
+            pass
 
 
 class SettingsScreen(Screen):
@@ -1038,9 +1056,13 @@ class WindowManager(ScreenManager):
 
 class NEVPNApp(MDApp):
     def build(self):
-        self.theme_cls.theme_style = "Light"
-        self.theme_cls.primary_palette = "Blue"
-        return Builder.load_string(KV)
+        try:
+            self.theme_cls.theme_style = "Light"
+            self.theme_cls.primary_palette = "Blue"
+            return Builder.load_string(KV)
+        except Exception as e:
+            Logger.exception("NEVPN: build() failed")
+            raise
 
 
 if __name__ == '__main__':

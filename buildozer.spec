@@ -5,16 +5,16 @@ package.name = nevpn
 package.domain = org.nevpn
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,json,txt
-source.include_patterns = images/*.png,images/*.jpg,image/*.png,image/*.jpg
+source.include_patterns = images/*.png,images/*.jpg
 
 version = 1.0.0
 
-requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow
+requirements = python3,kivy==master,kivymd==1.2.0,pillow
 
 orientation = portrait
 fullscreen = 0
 
-icon.filename = image/logo_icon.png
+icon.filename = images/logo_icon.png
 
 android.permissions = INTERNET
 android.minapi = 21
