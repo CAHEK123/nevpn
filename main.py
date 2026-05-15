@@ -3,36 +3,32 @@ import sys
 import os
 import traceback
 
-# --- Crash logger (works even before Kivy is imported) ---
+# --- Crash logger (writes to Downloads folder on Android) ---
 def _get_log_path():
-    # Detect Android without using Kivy — just check for Android-specific paths
-    android_paths = [
-        '/sdcard/Download/nevpn_crash.txt',
-        '/sdcard/Downloads/nevpn_crash.txt',
-        '/storage/emulated/0/Download/nevpn_crash.txt',
-        '/sdcard/nevpn_crash.txt',
-        '/data/user/0/org.nevpn.nevpn/files/nevpn_crash.txt',
-    ]
-    for path in android_paths:
-        try:
-            open(path, 'a').close()
-            return path
-        except Exception:
-            continue
+    try:
+        from kivy.utils import platform as _p
+        if _p == 'android':
+            # Try common Android paths
+            for path in [
+                '/sdcard/Download/nevpn_crash.txt',
+                '/sdcard/nevpn_crash.txt',
+                '/data/user/0/org.nevpn.nevpn/files/nevpn_crash.txt',
+            ]:
+                try:
+                    open(path, 'a').close()
+                    return path
+                except Exception:
+                    continue
+    except Exception:
+        pass
     return '/tmp/nevpn_crash.txt'
 
-def _write_crash(label, text):
+def handle_exception(exc_type, exc_value, exc_tb):
     try:
         path = _get_log_path()
         with open(path, 'a') as f:
-            f.write(f"\n=== {label} ===\n{text}\n")
-    except Exception:
-        pass
-
-def handle_exception(exc_type, exc_value, exc_tb):
-    _write_crash("CRASH", traceback.format_exception(exc_type, exc_value, exc_tb).__class__.__name__)
-    try:
-        _write_crash("CRASH", "".join(traceback.format_exception(exc_type, exc_value, exc_tb)))
+            f.write("\n=== CRASH ===\n")
+            traceback.print_exception(exc_type, exc_value, exc_tb, file=f)
     except Exception:
         pass
     sys.__excepthook__(exc_type, exc_value, exc_tb)
@@ -41,23 +37,27 @@ sys.excepthook = handle_exception
 
 # Wrap all imports in try so we catch import errors too
 try:
-    from kivymd.app import MDApp
-    from kivymd.uix.card import MDCard
-    from kivy.lang import Builder
-    from kivy.uix.screenmanager import Screen, ScreenManager
+    # Window MUST be imported before kivymd to fix:
+    # AttributeError: 'NoneType' object has no attribute 'width'
     from kivy.core.window import Window
-    from kivy.logger import Logger
-    from kivy.properties import StringProperty, BooleanProperty
-    from kivy.metrics import dp
-    from kivy.animation import Animation
     from kivy.utils import platform
     try:
         if platform != 'android':
             Window.size = (360, 640)
     except Exception:
         pass
+    from kivymd.app import MDApp
+    from kivymd.uix.card import MDCard
+    from kivy.lang import Builder
+    from kivy.uix.screenmanager import Screen, ScreenManager
+    from kivy.logger import Logger
+    from kivy.properties import StringProperty, BooleanProperty
+    from kivy.metrics import dp
+    from kivy.animation import Animation
 except Exception as _e:
-    _write_crash("IMPORT ERROR", traceback.format_exc())
+    path = _get_log_path()
+    with open(path, 'a') as f:
+        f.write("\n=== IMPORT ERROR ===\n" + traceback.format_exc())
     raise
 
 
