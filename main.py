@@ -4,13 +4,25 @@ from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.core.window import Window
 from kivymd.uix.list import OneLineAvatarIconListItem, IconRightWidget, ImageLeftWidget
-from kivy.properties import StringProperty, BooleanProperty, OptionProperty
+from kivy.properties import StringProperty, BooleanProperty
 from kivy.metrics import dp
 from kivy.animation import Animation
 
 from kivy.utils import platform
 if platform != 'android':
     Window.size = (360, 640)
+
+import sys
+import traceback
+
+def handle_exception(exc_type, exc_value, exc_tb):
+    with open('/sdcard/nevpn_crash.txt', 'a') as f:
+        traceback.print_exception(exc_type, exc_value, exc_tb, file=f)
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+sys.excepthook = handle_exception
+
+
 
 KV = '''
 #:import dp kivy.metrics.dp
