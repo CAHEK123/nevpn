@@ -1,33 +1,62 @@
 # -*- coding: utf-8 -*-
-from kivymd.app import MDApp
-from kivymd.uix.card import MDCard
-from kivy.lang import Builder
-from kivy.uix.screenmanager import Screen, ScreenManager
-from kivy.core.window import Window
-from kivy.logger import Logger
-from kivy.properties import StringProperty, BooleanProperty
-from kivy.metrics import dp
-from kivy.animation import Animation
-
-from kivy.utils import platform
-try:
-    if platform != 'android':
-        Window.size = (360, 640)
-except Exception:
-    pass
-
 import sys
+import os
 import traceback
+
+# --- Crash logger (writes to Downloads folder on Android) ---
+def _get_log_path():
+    try:
+        from kivy.utils import platform as _p
+        if _p == 'android':
+            # Try common Android paths
+            for path in [
+                '/sdcard/Download/nevpn_crash.txt',
+                '/sdcard/nevpn_crash.txt',
+                '/data/user/0/org.nevpn.nevpn/files/nevpn_crash.txt',
+            ]:
+                try:
+                    open(path, 'a').close()
+                    return path
+                except Exception:
+                    continue
+    except Exception:
+        pass
+    return '/tmp/nevpn_crash.txt'
 
 def handle_exception(exc_type, exc_value, exc_tb):
     try:
-        import traceback as tb
-        Logger.error("NEVPN: " + "".join(tb.format_exception(exc_type, exc_value, exc_tb)))
+        path = _get_log_path()
+        with open(path, 'a') as f:
+            f.write("\n=== CRASH ===\n")
+            traceback.print_exception(exc_type, exc_value, exc_tb, file=f)
     except Exception:
         pass
     sys.__excepthook__(exc_type, exc_value, exc_tb)
 
 sys.excepthook = handle_exception
+
+# Wrap all imports in try so we catch import errors too
+try:
+    from kivymd.app import MDApp
+    from kivymd.uix.card import MDCard
+    from kivy.lang import Builder
+    from kivy.uix.screenmanager import Screen, ScreenManager
+    from kivy.core.window import Window
+    from kivy.logger import Logger
+    from kivy.properties import StringProperty, BooleanProperty
+    from kivy.metrics import dp
+    from kivy.animation import Animation
+    from kivy.utils import platform
+    try:
+        if platform != 'android':
+            Window.size = (360, 640)
+    except Exception:
+        pass
+except Exception as _e:
+    path = _get_log_path()
+    with open(path, 'a') as f:
+        f.write("\n=== IMPORT ERROR ===\n" + traceback.format_exc())
+    raise
 
 
 
