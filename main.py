@@ -3,32 +3,36 @@ import sys
 import os
 import traceback
 
-# --- Crash logger (writes to Downloads folder on Android) ---
+# --- Crash logger (works even before Kivy is imported) ---
 def _get_log_path():
-    try:
-        from kivy.utils import platform as _p
-        if _p == 'android':
-            # Try common Android paths
-            for path in [
-                '/sdcard/Download/nevpn_crash.txt',
-                '/sdcard/nevpn_crash.txt',
-                '/data/user/0/org.nevpn.nevpn/files/nevpn_crash.txt',
-            ]:
-                try:
-                    open(path, 'a').close()
-                    return path
-                except Exception:
-                    continue
-    except Exception:
-        pass
+    # Detect Android without using Kivy — just check for Android-specific paths
+    android_paths = [
+        '/sdcard/Download/nevpn_crash.txt',
+        '/sdcard/Downloads/nevpn_crash.txt',
+        '/storage/emulated/0/Download/nevpn_crash.txt',
+        '/sdcard/nevpn_crash.txt',
+        '/data/user/0/org.nevpn.nevpn/files/nevpn_crash.txt',
+    ]
+    for path in android_paths:
+        try:
+            open(path, 'a').close()
+            return path
+        except Exception:
+            continue
     return '/tmp/nevpn_crash.txt'
 
-def handle_exception(exc_type, exc_value, exc_tb):
+def _write_crash(label, text):
     try:
         path = _get_log_path()
         with open(path, 'a') as f:
-            f.write("\n=== CRASH ===\n")
-            traceback.print_exception(exc_type, exc_value, exc_tb, file=f)
+            f.write(f"\n=== {label} ===\n{text}\n")
+    except Exception:
+        pass
+
+def handle_exception(exc_type, exc_value, exc_tb):
+    _write_crash("CRASH", traceback.format_exception(exc_type, exc_value, exc_tb).__class__.__name__)
+    try:
+        _write_crash("CRASH", "".join(traceback.format_exception(exc_type, exc_value, exc_tb)))
     except Exception:
         pass
     sys.__excepthook__(exc_type, exc_value, exc_tb)
@@ -53,9 +57,7 @@ try:
     except Exception:
         pass
 except Exception as _e:
-    path = _get_log_path()
-    with open(path, 'a') as f:
-        f.write("\n=== IMPORT ERROR ===\n" + traceback.format_exc())
+    _write_crash("IMPORT ERROR", traceback.format_exc())
     raise
 
 
