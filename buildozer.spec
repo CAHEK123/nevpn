@@ -10,7 +10,7 @@ source.include_patterns = images/*.png,images/*.jpg,image/*.png,image/*.jpg
 version = 1.0.0
 
 # kivy master + kivymd master — совместимы между собой
-requirements = python3,kivy==master,kivymd==master,pillow
+requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow
 
 orientation = portrait
 fullscreen = 0
