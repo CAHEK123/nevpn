@@ -1,64 +1,33 @@
 # -*- coding: utf-8 -*-
-import sys
-import os
-import traceback
+from kivymd.app import MDApp
+from kivymd.uix.card import MDCard
+from kivy.lang import Builder
+from kivy.uix.screenmanager import Screen, ScreenManager
+from kivy.core.window import Window
+from kivy.logger import Logger
+from kivy.properties import StringProperty, BooleanProperty
+from kivy.metrics import dp
+from kivy.animation import Animation
 
-# --- Crash logger (writes to Downloads folder on Android) ---
-def _get_log_path():
-    try:
-        from kivy.utils import platform as _p
-        if _p == 'android':
-            # Try common Android paths
-            for path in [
-                '/sdcard/Download/nevpn_crash.txt',
-                '/sdcard/nevpn_crash.txt',
-                '/data/user/0/org.nevpn.nevpn/files/nevpn_crash.txt',
-            ]:
-                try:
-                    open(path, 'a').close()
-                    return path
-                except Exception:
-                    continue
-    except Exception:
-        pass
-    return '/tmp/nevpn_crash.txt'
+from kivy.utils import platform
+try:
+    if platform != 'android':
+        Window.size = (360, 640)
+except Exception:
+    pass
+
+import sys
+import traceback
 
 def handle_exception(exc_type, exc_value, exc_tb):
     try:
-        path = _get_log_path()
-        with open(path, 'a') as f:
-            f.write("\n=== CRASH ===\n")
-            traceback.print_exception(exc_type, exc_value, exc_tb, file=f)
+        import traceback as tb
+        Logger.error("NEVPN: " + "".join(tb.format_exception(exc_type, exc_value, exc_tb)))
     except Exception:
         pass
     sys.__excepthook__(exc_type, exc_value, exc_tb)
 
 sys.excepthook = handle_exception
-
-# Wrap all imports in try so we catch import errors too
-try:
-    # Window MUST be imported before kivymd to fix:
-    # AttributeError: 'NoneType' object has no attribute 'width'
-    from kivy.core.window import Window
-    from kivy.utils import platform
-    try:
-        if platform != 'android':
-            Window.size = (360, 640)
-    except Exception:
-        pass
-    from kivymd.app import MDApp
-    from kivymd.uix.card import MDCard
-    from kivy.lang import Builder
-    from kivy.uix.screenmanager import Screen, ScreenManager
-    from kivy.logger import Logger
-    from kivy.properties import StringProperty, BooleanProperty
-    from kivy.metrics import dp
-    from kivy.animation import Animation
-except Exception as _e:
-    path = _get_log_path()
-    with open(path, 'a') as f:
-        f.write("\n=== IMPORT ERROR ===\n" + traceback.format_exc())
-    raise
 
 
 
@@ -1108,9 +1077,6 @@ class WindowManager(ScreenManager):
 class NEVPNApp(MDApp):
     def build(self):
         try:
-            # Force Window initialization BEFORE KivyMD imports material_resources
-            # This fixes: AttributeError: 'NoneType' object has no attribute 'width'
-            from kivy.core.window import Window as _W  # noqa: F401
             self.theme_cls.theme_style = "Light"
             self.theme_cls.primary_palette = "Blue"
             return Builder.load_string(KV)
