@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from kivymd.app import MDApp
+from kivymd.uix.card import MDCard
 from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.core.window import Window
-from kivymd.uix.list import OneLineAvatarIconListItem, IconRightWidget, ImageLeftWidget
 from kivy.logger import Logger
 from kivy.properties import StringProperty, BooleanProperty
 from kivy.metrics import dp
@@ -21,14 +21,8 @@ import traceback
 
 def handle_exception(exc_type, exc_value, exc_tb):
     try:
-        from kivy.utils import platform
-        if platform == 'android':
-            from android.storage import primary_external_storage_path
-            path = primary_external_storage_path() + '/nevpn_crash.txt'
-        else:
-            path = '/sdcard/nevpn_crash.txt'
-        with open(path, 'a') as f:
-            traceback.print_exception(exc_type, exc_value, exc_tb, file=f)
+        import traceback as tb
+        Logger.error("NEVPN: " + "".join(tb.format_exception(exc_type, exc_value, exc_tb)))
     except Exception:
         pass
     sys.__excepthook__(exc_type, exc_value, exc_tb)
@@ -52,19 +46,45 @@ KV = '''
     spacing: 12
 
 <ServerListItem>:
-    text: root.server_name
-    divider: None
-    _no_ripple_effect: False
+    size_hint_y: None
+    height: "60dp"
+    radius: [16]
+    md_bg_color: 0.95, 0.95, 0.98, 1
+    elevation: 2
+    ripple_behavior: True
+    padding: [16, 0]
     on_release: app.root.get_screen('servers').select_server(root.server_name)
-    ImageLeftWidget:
-        source: root.flag_source
-        size_hint: None, None
-        size: "32dp", "32dp"
-        pos_hint: {"center_y": .5}
-    IconRightWidget:
-        icon: "chevron-right"
-        theme_text_color: "Custom"
-        text_color: 0.7, 0.7, 0.7, 1
+    MDBoxLayout:
+        spacing: 14
+        MDBoxLayout:
+            size_hint: None, None
+            size: "38dp", "38dp"
+            pos_hint: {"center_y": .5}
+            AnchorLayout:
+                Image:
+                    source: root.flag_source
+                    size_hint: None, None
+                    size: "30dp", "22dp"
+                    pos_hint: {"center_x": .5, "center_y": .5}
+        MDLabel:
+            text: root.server_name
+            theme_text_color: "Custom"
+            text_color: 0.1, 0.1, 0.1, 1
+            valign: "middle"
+            size_hint_x: 1
+        MDBoxLayout:
+            size_hint: None, None
+            size: "38dp", "38dp"
+            pos_hint: {"center_y": .5}
+            AnchorLayout:
+                MDIcon:
+                    icon: "chevron-right"
+                    size_hint: None, None
+                    size: "22dp", "22dp"
+                    pos_hint: {"center_x": .5, "center_y": .5}
+                    theme_text_color: "Custom"
+                    text_color: 0.7, 0.7, 0.7, 1
+                    font_size: "20sp"
 
 WindowManager:
     MainScreen:
@@ -982,7 +1002,7 @@ WindowManager:
 '''
 
 
-class ServerListItem(OneLineAvatarIconListItem):
+class ServerListItem(MDCard):
     server_name = StringProperty()
     flag_source = StringProperty()
 
