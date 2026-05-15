@@ -1106,6 +1106,9 @@ class WindowManager(ScreenManager):
 class NEVPNApp(MDApp):
     def build(self):
         try:
+            # Force Window initialization BEFORE KivyMD imports material_resources
+            # This fixes: AttributeError: 'NoneType' object has no attribute 'width'
+            from kivy.core.window import Window as _W  # noqa: F401
             self.theme_cls.theme_style = "Light"
             self.theme_cls.primary_palette = "Blue"
             return Builder.load_string(KV)

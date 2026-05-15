@@ -9,7 +9,7 @@ source.include_patterns = images/*.png,images/*.jpg
 
 version = 1.0.0
 
-requirements = python3,kivy==master,kivymd==1.2.0,pillow
+requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow
 
 orientation = portrait
 fullscreen = 0
