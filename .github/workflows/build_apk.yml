@@ -19,12 +19,13 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Кэш с новым ключом v4 — сбросит старый кэш
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
-          key: buildozer-v3-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v3-${{ runner.os }}-
+          key: buildozer-v4-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v4-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -42,28 +43,31 @@ jobs:
           pip3 install --upgrade pip
           pip3 install buildozer==1.5.0 cython==0.29.37
 
-      - name: Set JAVA_HOME
-        run: echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-
-      - name: Force python-for-android to use Python 3.11
-        run: |
-          echo "BUILDOZER_ANDROID_PYTHON_VERSION=3.11" >> $GITHUB_ENV
-
       - name: Build debug APK
         run: |
           buildozer android debug 2>&1 | tee build.log
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
+      - name: Find APK
+        if: always()
+        run: |
+          echo "=== Ищем APK ==="
+          find . -name "*.apk" 2>/dev/null
+          echo "=== Содержимое bin/ ==="
+          ls -la bin/ 2>/dev/null || echo "папки bin/ нет"
+
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: nevpn-debug-apk
-          path: bin/*.apk
+          path: |
+            bin/*.apk
+            **/*.apk
+          if-no-files-found: warn
           retention-days: 30
 
-      - name: Upload build log (always)
+      - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
