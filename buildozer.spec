@@ -5,7 +5,7 @@ package.name = nevpn
 package.domain = org.nevpn
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,json,txt
-source.include_patterns = images/*.png,images/*.jpg
+source.include_patterns = image/*.png,image/*.jpg
 
 version = 1.0.0
 
@@ -14,7 +14,7 @@ requirements = python3,kivy==master,kivymd==1.2.0,pillow
 orientation = portrait
 fullscreen = 0
 
-icon.filename = images/logo_icon.png
+icon.filename = image/logo_icon.png
 
 android.permissions = INTERNET
 android.minapi = 21
@@ -25,7 +25,8 @@ android.accept_sdk_license = True
 android.archs = arm64-v8a
 android.allow_backup = False
 
-android.logcat_filters = *:S python:D
+# Переменная окружения для фикса бага с Window
+android.add_java_options = -DKIVY_NO_ENV_CONFIG=1
 
 [buildozer]
 log_level = 2
