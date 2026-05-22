@@ -13,9 +13,9 @@ if platform != 'android':
 
 # Только после этого импортируем kivymd
 from kivymd.app import MDApp
+from kivymd.uix.card import MDCard
 from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen, ScreenManager
-from kivymd.uix.list import OneLineAvatarIconListItem, IconRightWidget, ImageLeftWidget
 from kivy.properties import StringProperty, BooleanProperty
 from kivy.metrics import dp
 from kivy.animation import Animation
