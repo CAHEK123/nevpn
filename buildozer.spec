@@ -16,7 +16,7 @@ fullscreen = 0
 
 icon.filename = images/logo_icon.png
 
-android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
+android.permissions = INTERNET, READ_EXTERNAL_STORAGE
 android.minapi = 21
 android.api = 33
 android.ndk = 25b

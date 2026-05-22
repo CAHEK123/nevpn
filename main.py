@@ -25,36 +25,52 @@ import threading
 def get_crash_log_path():
     """
     Путь для crash_log.txt.
-    Samsung A35 (без SD карты) — внутренняя память, папка Download.
-    Используем Java Environment через jnius — самый надёжный способ.
+    Android 10+ (API 29+): WRITE_EXTERNAL_STORAGE не работает для Download.
+    Используем getExternalFilesDir — доступ без разрешений, всегда работает.
+    Путь будет: /storage/emulated/0/Android/data/org.nevpn/files/NEVPN_crash_log.txt
+    Чтобы увидеть файл: подключи телефон к ПК через USB (MTP) или используй
+    приложение-файловый менеджер с доступом к app-specific папкам.
     """
     from kivy.utils import platform
     if platform == 'android':
-        # Способ 1: через Java API (самый надёжный, даёт реальный путь Download)
+        # Способ 1: getExternalFilesDir — работает без разрешений на Android 4.4+
         try:
             from jnius import autoclass
-            Environment = autoclass('android.os.Environment')
-            downloads = Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOWNLOADS
-            )
-            downloads_path = downloads.getAbsolutePath()
-            os.makedirs(downloads_path, exist_ok=True)
-            return os.path.join(downloads_path, 'NEVPN_crash_log.txt')
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            context = PythonActivity.mActivity
+            ext_files_dir = context.getExternalFilesDir(None)
+            if ext_files_dir is not None:
+                path = ext_files_dir.getAbsolutePath()
+                os.makedirs(path, exist_ok=True)
+                return os.path.join(path, 'NEVPN_crash_log.txt')
         except Exception:
             pass
-        # Способ 2: прямой путь внутренней памяти Samsung
-        for path in [
-            '/storage/emulated/0/Download',
-            '/sdcard/Download',
+
+        # Способ 2: внутренняя папка приложения (всегда доступна)
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            context = PythonActivity.mActivity
+            internal_dir = context.getFilesDir().getAbsolutePath()
+            os.makedirs(internal_dir, exist_ok=True)
+            return os.path.join(internal_dir, 'NEVPN_crash_log.txt')
+        except Exception:
+            pass
+
+        # Способ 3: app-specific путь без jnius (запасной)
+        for base in [
+            '/storage/emulated/0/Android/data/org.nevpn/files',
+            '/data/data/org.nevpn/files',
         ]:
             try:
-                os.makedirs(path, exist_ok=True)
-                if os.path.isdir(path):
-                    return os.path.join(path, 'NEVPN_crash_log.txt')
+                os.makedirs(base, exist_ok=True)
+                if os.path.isdir(base):
+                    return os.path.join(base, 'NEVPN_crash_log.txt')
             except Exception:
                 continue
-        # Запасной — корень внутренней памяти
-        return '/storage/emulated/0/NEVPN_crash_log.txt'
+
+        # Последний запасной — временная папка
+        return '/data/local/tmp/NEVPN_crash_log.txt'
     else:
         # На ПК — рядом с main.py
         return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'crash_log.txt')
