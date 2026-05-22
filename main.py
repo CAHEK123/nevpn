@@ -23,18 +23,38 @@ import datetime
 import threading
 
 def get_crash_log_path():
-    """Определяем путь для crash_log.txt — работает и на Android, и на ПК"""
+    """
+    Путь для crash_log.txt.
+    Samsung A35 (без SD карты) — внутренняя память, папка Download.
+    Используем Java Environment через jnius — самый надёжный способ.
+    """
     from kivy.utils import platform
     if platform == 'android':
+        # Способ 1: через Java API (самый надёжный, даёт реальный путь Download)
         try:
-            from android.storage import primary_external_storage_path
-            ext = primary_external_storage_path()
-            if ext:
-                return os.path.join(ext, 'NEVPN_crash_log.txt')
+            from jnius import autoclass
+            Environment = autoclass('android.os.Environment')
+            downloads = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS
+            )
+            downloads_path = downloads.getAbsolutePath()
+            os.makedirs(downloads_path, exist_ok=True)
+            return os.path.join(downloads_path, 'NEVPN_crash_log.txt')
         except Exception:
             pass
-        # Запасной путь — внутреннее хранилище приложения
-        return '/sdcard/NEVPN_crash_log.txt'
+        # Способ 2: прямой путь внутренней памяти Samsung
+        for path in [
+            '/storage/emulated/0/Download',
+            '/sdcard/Download',
+        ]:
+            try:
+                os.makedirs(path, exist_ok=True)
+                if os.path.isdir(path):
+                    return os.path.join(path, 'NEVPN_crash_log.txt')
+            except Exception:
+                continue
+        # Запасной — корень внутренней памяти
+        return '/storage/emulated/0/NEVPN_crash_log.txt'
     else:
         # На ПК — рядом с main.py
         return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'crash_log.txt')
