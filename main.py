@@ -18,16 +18,70 @@ except Exception:
 
 import sys
 import traceback
+import os
+import datetime
+import threading
+
+def get_crash_log_path():
+    """Определяем путь для crash_log.txt — работает и на Android, и на ПК"""
+    from kivy.utils import platform
+    if platform == 'android':
+        try:
+            from android.storage import primary_external_storage_path
+            ext = primary_external_storage_path()
+            if ext:
+                return os.path.join(ext, 'NEVPN_crash_log.txt')
+        except Exception:
+            pass
+        # Запасной путь — внутреннее хранилище приложения
+        return '/sdcard/NEVPN_crash_log.txt'
+    else:
+        # На ПК — рядом с main.py
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'crash_log.txt')
+
+def write_crash_log(exc_type, exc_value, exc_tb):
+    """Записывает crash в txt файл"""
+    try:
+        log_path = get_crash_log_path()
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        lines = [
+            "=" * 60,
+            f"CRASH — {now}",
+            "=" * 60,
+            f"Platform: {sys.platform}",
+            f"Python: {sys.version}",
+            "",
+            "--- Traceback ---",
+            "".join(traceback.format_exception(exc_type, exc_value, exc_tb)),
+            "",
+        ]
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write("\n".join(lines))
+        Logger.error(f"NEVPN: Crash log saved to: {log_path}")
+    except Exception as write_err:
+        Logger.error(f"NEVPN: Could not write crash log: {write_err}")
 
 def handle_exception(exc_type, exc_value, exc_tb):
+    # Игнорируем KeyboardInterrupt (Ctrl+C)
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_tb)
+        return
     try:
-        import traceback as tb
-        Logger.error("NEVPN: " + "".join(tb.format_exception(exc_type, exc_value, exc_tb)))
+        Logger.error("NEVPN: " + "".join(traceback.format_exception(exc_type, exc_value, exc_tb)))
+        write_crash_log(exc_type, exc_value, exc_tb)
     except Exception:
         pass
     sys.__excepthook__(exc_type, exc_value, exc_tb)
 
 sys.excepthook = handle_exception
+
+# Ловим крэши и в потоках (Thread)
+_original_threading_excepthook = threading.excepthook
+def thread_exception_handler(args):
+    if args.exc_type and not issubclass(args.exc_type, SystemExit):
+        handle_exception(args.exc_type, args.exc_value, args.exc_traceback)
+    _original_threading_excepthook(args)
+threading.excepthook = thread_exception_handler
 
 
 
@@ -1082,8 +1136,13 @@ class NEVPNApp(MDApp):
             return Builder.load_string(KV)
         except Exception as e:
             Logger.exception("NEVPN: build() failed")
+            write_crash_log(type(e), e, e.__traceback__)
             raise
 
 
 if __name__ == '__main__':
-    NEVPNApp().run()
+    try:
+        NEVPNApp().run()
+    except Exception as e:
+        write_crash_log(type(e), e, e.__traceback__)
+        raise
