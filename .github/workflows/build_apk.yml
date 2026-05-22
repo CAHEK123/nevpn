@@ -19,12 +19,13 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Кэш с новым ключом v4 — сбросит старый кэш
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
-          key: buildozer-v7-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v7-${{ runner.os }}-
+          key: buildozer-v4-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v4-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -42,56 +43,31 @@ jobs:
           pip3 install --upgrade pip
           pip3 install buildozer==1.5.0 cython==0.29.37
 
-      - name: First build pass (downloads/installs everything)
+      - name: Build debug APK
         run: |
-          buildozer android debug 2>&1 | tee build.log || true
+          buildozer android debug 2>&1 | tee build.log
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
-      - name: Patch KivyMD material_resources.py
+      - name: Find APK
+        if: always()
         run: |
-          PATCH_FILE=$(find ~/.buildozer -name "material_resources.py" -path "*/kivymd/*" 2>/dev/null | head -1)
-          if [ -n "$PATCH_FILE" ]; then
-            echo "Patching: $PATCH_FILE"
-            python3 - "$PATCH_FILE" << 'PYEOF'
-          import sys, re
-          path = sys.argv[1]
-          with open(path, 'r') as f:
-              code = f.read()
-          # Replace Window.width usage with safe fallback
-          code = re.sub(
-              r'dp\(Window\.width\)',
-              'dp(360)',
-              code
-          )
-          code = re.sub(
-              r'Window\.width',
-              '(360)',
-              code
-          )
-          with open(path, 'w') as f:
-              f.write(code)
-          print("Patched successfully")
-          PYEOF
-          else
-            echo "material_resources.py not found yet (first build pass needed)"
-          fi
-
-      - name: Final build with patched KivyMD
-        run: |
-          buildozer android debug 2>&1 | tee -a build.log
-        env:
-          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          echo "=== Ищем APK ==="
+          find . -name "*.apk" 2>/dev/null
+          echo "=== Содержимое bin/ ==="
+          ls -la bin/ 2>/dev/null || echo "папки bin/ нет"
 
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: nevpn-debug-apk
-          path: bin/*.apk
+          path: |
+            bin/*.apk
+            **/*.apk
+          if-no-files-found: warn
           retention-days: 30
 
-      - name: Upload build log (always)
+      - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
