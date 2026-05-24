@@ -25,11 +25,9 @@ android.accept_sdk_license = True
 android.archs = arm64-v8a
 android.allow_backup = False
 
-# Закрепляем конкретный тег p4a, где рецепт python3 ещё берёт Python 3.11.
-# p4a.python_version НЕ РАБОТАЕТ в buildozer 1.5.0 — он игнорируется,
-# p4a сам выбирает версию Python внутри своего рецепта python3.
-# Тег 2024.01.21 использует Python 3.11.7.
-p4a.branch = 2024.01.21
+# Используем стабильный тег p4a с Python 3.11 + NDK 25b
+# 2024.09.02 — последний официальный релиз, проверен с Kivy 2.3.0
+p4a.branch = 2024.09.02
 
 [buildozer]
 log_level = 2

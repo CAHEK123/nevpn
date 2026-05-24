@@ -24,8 +24,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
-          key: buildozer-v8-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v8-${{ runner.os }}-
+          key: buildozer-v9-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v9-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
