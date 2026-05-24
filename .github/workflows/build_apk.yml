@@ -19,13 +19,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      # v7 — kivy==2.3.0 (стабильная) + сброс кэша
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
-          key: buildozer-v10-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v10-${{ runner.os }}-
+          key: buildozer-v11-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v11-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -42,7 +41,9 @@ jobs:
         run: |
           pip3 install --upgrade pip
           pip3 install buildozer==1.5.0 cython==0.29.37
-          pip3 install python-for-android==2024.1.21
+
+      - name: Clean Buildozer cache
+        run: buildozer clean
 
       - name: Build debug APK
         run: |
