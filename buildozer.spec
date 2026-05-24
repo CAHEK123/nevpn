@@ -25,9 +25,9 @@ android.accept_sdk_license = True
 android.archs = arm64-v8a
 android.allow_backup = False
 
-# Используем стабильный тег p4a с Python 3.11 + NDK 25b
-# 2024.09.02 — последний официальный релиз, проверен с Kivy 2.3.0
-p4a.branch = 2024.09.02
+# p4a устанавливается через pip в workflow (python-for-android==2024.1.21)
+# НЕ используем p4a.branch — buildozer передаёт значение в git clone -b БЕЗ префикса v,
+# поэтому git не находит теги (они называются v2024.01.21, а не 2024.01.21)
 
 [buildozer]
 log_level = 2
