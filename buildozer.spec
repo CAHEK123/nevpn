@@ -27,6 +27,11 @@ android.accept_sdk_license = True
 android.archs = arm64-v8a
 android.allow_backup = False
 
+# Фиксируем Python 3.11 — Kivy 2.3.0 + Cython 0.29.x не компилируются
+# под Python 3.12+ из-за изменений в C API (_PyLong_AsByteArray и др.)
+p4a.python_version = 3.11
+p4a.branch = master
+
 [buildozer]
 log_level = 2
 warn_on_root = 1

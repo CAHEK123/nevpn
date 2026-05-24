@@ -1,43 +1,19 @@
 # -*- coding: utf-8 -*-
 import sys
-import types
 import os
 
-# ╔══════════════════════════════════════════════════════════════╗
-# ║  ПАТЧ v2: полная заглушка для KivyMD 1.2.0 на Android       ║
-# ║  Подменяем material_resources ДО любого импорта KivyMD.     ║
-# ║  Также фиксим theming.py который тоже лезет в Window.       ║
-# ╚══════════════════════════════════════════════════════════════╝
-
-# --- material_resources заглушка ---
-_mat_mod = types.ModuleType('kivymd.material_resources')
-_mat_mod.__all__ = ('DEVICE_TYPE',)
-_mat_mod.DEVICE_TYPE = 'mobile'
-sys.modules['kivymd.material_resources'] = _mat_mod
-
-# --- Заглушка Window до инициализации ---
-# Нужна чтобы theming.py не упал при импорте
-import kivy  # noqa: E402
-kivy.require('2.0.0')
-
-# Устанавливаем платформу ДО Window
+# Фикс краша AttributeError: 'NoneType'.width на Kivy 2.2.0+ + KivyMD 1.2.0:
+# Kivy 2.2.0+ перестал создавать Window автоматически при импорте.
+# KivyMD лезет в Window.width (и Window.bind) при загрузке своих модулей —
+# до того как Window реально создан. Решение: форсировать импорт Window
+# ДО любого импорта KivyMD. Этот импорт и создаёт настоящее окно.
 os.environ.setdefault('KIVY_NO_ENV_CONFIG', '1')
 
-from kivy.utils import platform  # noqa: E402
+import kivy
+kivy.require('2.0.0')
 
-# На Android Window может быть None при импорте —
-# подменяем временно чтобы KivyMD не падал
-if platform == 'android':
-    import kivy.core.window as _kw_module
-    if _kw_module.Window is None:
-        class _FakeWindow:
-            width = 1080
-            height = 1920
-            size = (1080, 1920)
-            dpi = 420
-        _kw_module.Window = _FakeWindow()
-
-from kivy.core.window import Window  # noqa: E402
+from kivy.core.window import Window  # noqa: E402 — создаёт Window до KivyMD
+from kivy.utils import platform
 
 if platform != 'android':
     Window.size = (360, 640)
