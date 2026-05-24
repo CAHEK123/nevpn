@@ -16,14 +16,18 @@ fullscreen = 0
 
 icon.filename = images/logo_icon.png
 
-android.permissions = INTERNET, READ_EXTERNAL_STORAGE
-android.minapi = 21
-android.api = 33
+# ── Samsung A35 5G: Android 16 (API 36), One UI 8.0 ──────
+# getExternalFilesDir не требует разрешений — INTERNET достаточно
+android.permissions = INTERNET
+
+android.minapi = 26
+android.api = 36
 android.ndk = 25b
-android.sdk = 33
+android.sdk = 36
 android.accept_sdk_license = True
 android.archs = arm64-v8a
 android.allow_backup = False
+android.enable_androidx = True
 
 android.logcat_filters = *:S python:D
 

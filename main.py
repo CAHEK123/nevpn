@@ -1,4 +1,133 @@
 # -*- coding: utf-8 -*-
+# ──────────────────────────────────────────────────────────
+# stdlib импорты ПЕРВЫМИ — ловим краши до инициализации kivy
+# Android 16 (API 36) / One UI 8.0 / Samsung A35 5G ready
+# ──────────────────────────────────────────────────────────
+import sys
+import traceback
+import os
+import datetime
+import threading
+
+
+# ══ Crash Log ════════════════════════════════════════════════
+
+def get_crash_log_path():
+    """
+    Путь для лога без КАКИХ-ЛИБО разрешений.
+    Android 16 / SELinux Enforcing / Knox 3.12:
+      getExternalFilesDir() — не требует разрешений вообще.
+    Файл: /storage/emulated/0/Android/data/org.nevpn/files/NEVPN_crash_log.txt
+    Читать: USB MTP  →  Этот ПК / Samsung A35 / Internal / Android/data/org.nevpn/files/
+    """
+    is_android = (
+        os.path.exists("/system/build.prop")
+        or os.path.exists("/system/framework")
+    )
+    if not is_android:
+        try:
+            from kivy.utils import platform as _p
+            is_android = (_p == "android")
+        except Exception:
+            pass
+
+    if is_android:
+        # 1) getExternalFilesDir — никаких разрешений, Android 4.4+
+        try:
+            from jnius import autoclass
+            ctx = autoclass("org.kivy.android.PythonActivity").mActivity
+            d = ctx.getExternalFilesDir(None)
+            if d is not None:
+                path = d.getAbsolutePath()
+                os.makedirs(path, exist_ok=True)
+                t = os.path.join(path, ".wtest")
+                open(t, "w").close()
+                os.remove(t)
+                return os.path.join(path, "NEVPN_crash_log.txt")
+        except Exception:
+            pass
+
+        # 2) getCacheDir — всегда доступен
+        try:
+            from jnius import autoclass
+            ctx = autoclass("org.kivy.android.PythonActivity").mActivity
+            path = ctx.getCacheDir().getAbsolutePath()
+            os.makedirs(path, exist_ok=True)
+            return os.path.join(path, "NEVPN_crash_log.txt")
+        except Exception:
+            pass
+
+        # 3) getFilesDir — внутренняя память
+        try:
+            from jnius import autoclass
+            ctx = autoclass("org.kivy.android.PythonActivity").mActivity
+            path = ctx.getFilesDir().getAbsolutePath()
+            os.makedirs(path, exist_ok=True)
+            return os.path.join(path, "NEVPN_crash_log.txt")
+        except Exception:
+            pass
+
+        # 4) Жёсткие пути с проверкой записи
+        for base in [
+            "/storage/emulated/0/Android/data/org.nevpn/files",
+            "/data/data/org.nevpn/cache",
+            "/data/data/org.nevpn/files",
+        ]:
+            try:
+                os.makedirs(base, exist_ok=True)
+                t = os.path.join(base, ".wtest")
+                open(t, "w").close()
+                os.remove(t)
+                return os.path.join(base, "NEVPN_crash_log.txt")
+            except Exception:
+                continue
+
+        return "/data/local/tmp/NEVPN_crash_log.txt"
+    else:
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), "crash_log.txt")
+
+
+def write_crash_log(exc_type, exc_value, exc_tb):
+    """Пишет лог — никогда не бросает исключений."""
+    try:
+        path = get_crash_log_path()
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        lines = [
+            "=" * 60,
+            "CRASH  " + now,
+            "=" * 60,
+            "Platform: " + sys.platform,
+            "Python: " + sys.version,
+            "",
+            "--- Traceback ---",
+            "".join(traceback.format_exception(exc_type, exc_value, exc_tb)),
+            "",
+        ]
+        with open(path, "a", encoding="utf-8") as f:
+            f.write("\n".join(lines))
+    except Exception:
+        pass
+
+
+def handle_exception(exc_type, exc_value, exc_tb):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_tb)
+        return
+    write_crash_log(exc_type, exc_value, exc_tb)
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+
+sys.excepthook = handle_exception
+
+_orig_thread_hook = threading.excepthook
+def _thread_exception_handler(args):
+    if args.exc_type and not issubclass(args.exc_type, SystemExit):
+        write_crash_log(args.exc_type, args.exc_value, args.exc_traceback)
+    _orig_thread_hook(args)
+threading.excepthook = _thread_exception_handler
+
+
+# ══ Kivy — после crash handler ═══════════════════════════════
 from kivymd.app import MDApp
 from kivymd.uix.card import MDCard
 from kivy.lang import Builder
@@ -8,117 +137,13 @@ from kivy.logger import Logger
 from kivy.properties import StringProperty, BooleanProperty
 from kivy.metrics import dp
 from kivy.animation import Animation
-
 from kivy.utils import platform
+
 try:
-    if platform != 'android':
+    if platform != "android":
         Window.size = (360, 640)
 except Exception:
     pass
-
-import sys
-import traceback
-import os
-import datetime
-import threading
-
-def get_crash_log_path():
-    """
-    Путь для crash_log.txt.
-    Android 10+ (API 29+): WRITE_EXTERNAL_STORAGE не работает для Download.
-    Используем getExternalFilesDir — доступ без разрешений, всегда работает.
-    Путь будет: /storage/emulated/0/Android/data/org.nevpn/files/NEVPN_crash_log.txt
-    Чтобы увидеть файл: подключи телефон к ПК через USB (MTP) или используй
-    приложение-файловый менеджер с доступом к app-specific папкам.
-    """
-    from kivy.utils import platform
-    if platform == 'android':
-        # Способ 1: getExternalFilesDir — работает без разрешений на Android 4.4+
-        try:
-            from jnius import autoclass
-            PythonActivity = autoclass('org.kivy.android.PythonActivity')
-            context = PythonActivity.mActivity
-            ext_files_dir = context.getExternalFilesDir(None)
-            if ext_files_dir is not None:
-                path = ext_files_dir.getAbsolutePath()
-                os.makedirs(path, exist_ok=True)
-                return os.path.join(path, 'NEVPN_crash_log.txt')
-        except Exception:
-            pass
-
-        # Способ 2: внутренняя папка приложения (всегда доступна)
-        try:
-            from jnius import autoclass
-            PythonActivity = autoclass('org.kivy.android.PythonActivity')
-            context = PythonActivity.mActivity
-            internal_dir = context.getFilesDir().getAbsolutePath()
-            os.makedirs(internal_dir, exist_ok=True)
-            return os.path.join(internal_dir, 'NEVPN_crash_log.txt')
-        except Exception:
-            pass
-
-        # Способ 3: app-specific путь без jnius (запасной)
-        for base in [
-            '/storage/emulated/0/Android/data/org.nevpn/files',
-            '/data/data/org.nevpn/files',
-        ]:
-            try:
-                os.makedirs(base, exist_ok=True)
-                if os.path.isdir(base):
-                    return os.path.join(base, 'NEVPN_crash_log.txt')
-            except Exception:
-                continue
-
-        # Последний запасной — временная папка
-        return '/data/local/tmp/NEVPN_crash_log.txt'
-    else:
-        # На ПК — рядом с main.py
-        return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'crash_log.txt')
-
-def write_crash_log(exc_type, exc_value, exc_tb):
-    """Записывает crash в txt файл"""
-    try:
-        log_path = get_crash_log_path()
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        lines = [
-            "=" * 60,
-            f"CRASH — {now}",
-            "=" * 60,
-            f"Platform: {sys.platform}",
-            f"Python: {sys.version}",
-            "",
-            "--- Traceback ---",
-            "".join(traceback.format_exception(exc_type, exc_value, exc_tb)),
-            "",
-        ]
-        with open(log_path, 'a', encoding='utf-8') as f:
-            f.write("\n".join(lines))
-        Logger.error(f"NEVPN: Crash log saved to: {log_path}")
-    except Exception as write_err:
-        Logger.error(f"NEVPN: Could not write crash log: {write_err}")
-
-def handle_exception(exc_type, exc_value, exc_tb):
-    # Игнорируем KeyboardInterrupt (Ctrl+C)
-    if issubclass(exc_type, KeyboardInterrupt):
-        sys.__excepthook__(exc_type, exc_value, exc_tb)
-        return
-    try:
-        Logger.error("NEVPN: " + "".join(traceback.format_exception(exc_type, exc_value, exc_tb)))
-        write_crash_log(exc_type, exc_value, exc_tb)
-    except Exception:
-        pass
-    sys.__excepthook__(exc_type, exc_value, exc_tb)
-
-sys.excepthook = handle_exception
-
-# Ловим крэши и в потоках (Thread)
-_original_threading_excepthook = threading.excepthook
-def thread_exception_handler(args):
-    if args.exc_type and not issubclass(args.exc_type, SystemExit):
-        handle_exception(args.exc_type, args.exc_value, args.exc_traceback)
-    _original_threading_excepthook(args)
-threading.excepthook = thread_exception_handler
-
 
 
 KV = '''
