@@ -9,8 +9,6 @@ source.include_patterns = image/*.png,image/*.jpg,image/*.jpeg
 
 version = 1.0.0
 
-# kivy==master работает с NDK r25b (проверено первой успешной сборкой)
-# kivymd==1.2.0 — патч в main.py фиксит краш с Window
 requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow
 
 orientation = portrait
@@ -27,10 +25,11 @@ android.accept_sdk_license = True
 android.archs = arm64-v8a
 android.allow_backup = False
 
-# Фиксируем Python 3.11 — Kivy 2.3.0 + Cython 0.29.x не компилируются
-# под Python 3.12+ из-за изменений в C API (_PyLong_AsByteArray и др.)
-p4a.python_version = 3.11
-p4a.branch = master
+# Закрепляем конкретный тег p4a, где рецепт python3 ещё берёт Python 3.11.
+# p4a.python_version НЕ РАБОТАЕТ в buildozer 1.5.0 — он игнорируется,
+# p4a сам выбирает версию Python внутри своего рецепта python3.
+# Тег 2024.01.21 использует Python 3.11.7.
+p4a.branch = 2024.01.21
 
 [buildozer]
 log_level = 2
