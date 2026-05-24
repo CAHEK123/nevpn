@@ -19,13 +19,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      # v6 — сброс кэша, возврат к kivy==master который реально работает
+      # v7 — kivy==2.3.0 (стабильная) + сброс кэша
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
-          key: buildozer-v6-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v6-${{ runner.os }}-
+          key: buildozer-v7-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v7-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -48,6 +48,7 @@ jobs:
           buildozer android debug 2>&1 | tee build.log
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - name: Find APK location
         if: always()
@@ -62,9 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nevpn-debug-apk
-          path: |
-            bin/*.apk
-            **/*.apk
+          path: bin/*.apk
           if-no-files-found: warn
           retention-days: 30
 

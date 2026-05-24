@@ -1,21 +1,43 @@
 # -*- coding: utf-8 -*-
 import sys
 import types
+import os
 
-# ╔══════════════════════════════════════════════════════╗
-# ║  ПАТЧ: KivyMD 1.2.0 на Android вылетает потому что  ║
-# ║  material_resources.py обращается к Window.width     ║
-# ║  при импорте, когда Window ещё не создан (= None).   ║
-# ║  Решение: подменяем модуль в sys.modules заранее.    ║
-# ╚══════════════════════════════════════════════════════╝
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  ПАТЧ v2: полная заглушка для KivyMD 1.2.0 на Android       ║
+# ║  Подменяем material_resources ДО любого импорта KivyMD.     ║
+# ║  Также фиксим theming.py который тоже лезет в Window.       ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+# --- material_resources заглушка ---
 _mat_mod = types.ModuleType('kivymd.material_resources')
 _mat_mod.__all__ = ('DEVICE_TYPE',)
-_mat_mod.DEVICE_TYPE = 'mobile'   # телефон — всегда mobile
+_mat_mod.DEVICE_TYPE = 'mobile'
 sys.modules['kivymd.material_resources'] = _mat_mod
-# ══════════════════════════════════════════════════════
 
-from kivy.utils import platform
-from kivy.core.window import Window
+# --- Заглушка Window до инициализации ---
+# Нужна чтобы theming.py не упал при импорте
+import kivy  # noqa: E402
+kivy.require('2.0.0')
+
+# Устанавливаем платформу ДО Window
+os.environ.setdefault('KIVY_NO_ENV_CONFIG', '1')
+
+from kivy.utils import platform  # noqa: E402
+
+# На Android Window может быть None при импорте —
+# подменяем временно чтобы KivyMD не падал
+if platform == 'android':
+    import kivy.core.window as _kw_module
+    if _kw_module.Window is None:
+        class _FakeWindow:
+            width = 1080
+            height = 1920
+            size = (1080, 1920)
+            dpi = 420
+        _kw_module.Window = _FakeWindow()
+
+from kivy.core.window import Window  # noqa: E402
 
 if platform != 'android':
     Window.size = (360, 640)
