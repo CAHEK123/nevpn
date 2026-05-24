@@ -1,150 +1,51 @@
 # -*- coding: utf-8 -*-
-# ──────────────────────────────────────────────────────────
-# stdlib импорты ПЕРВЫМИ — ловим краши до инициализации kivy
-# Android 16 (API 36) / One UI 8.0 / Samsung A35 5G ready
-# ──────────────────────────────────────────────────────────
 import sys
-import traceback
-import os
-import datetime
-import threading
+import types
 
+# ╔══════════════════════════════════════════════════════╗
+# ║  ПАТЧ: KivyMD 1.2.0 на Android вылетает потому что  ║
+# ║  material_resources.py обращается к Window.width     ║
+# ║  при импорте, когда Window ещё не создан (= None).   ║
+# ║  Решение: подменяем модуль в sys.modules заранее.    ║
+# ╚══════════════════════════════════════════════════════╝
+_mat_mod = types.ModuleType('kivymd.material_resources')
+_mat_mod.__all__ = ('DEVICE_TYPE',)
+_mat_mod.DEVICE_TYPE = 'mobile'   # телефон — всегда mobile
+sys.modules['kivymd.material_resources'] = _mat_mod
+# ══════════════════════════════════════════════════════
 
-# ══ Crash Log ════════════════════════════════════════════════
+from kivy.utils import platform
+from kivy.core.window import Window
 
-def get_crash_log_path():
-    """
-    Путь для лога без КАКИХ-ЛИБО разрешений.
-    Android 16 / SELinux Enforcing / Knox 3.12:
-      getExternalFilesDir() — не требует разрешений вообще.
-    Файл: /storage/emulated/0/Android/data/org.nevpn/files/NEVPN_crash_log.txt
-    Читать: USB MTP  →  Этот ПК / Samsung A35 / Internal / Android/data/org.nevpn/files/
-    """
-    is_android = (
-        os.path.exists("/system/build.prop")
-        or os.path.exists("/system/framework")
-    )
-    if not is_android:
-        try:
-            from kivy.utils import platform as _p
-            is_android = (_p == "android")
-        except Exception:
-            pass
+if platform != 'android':
+    Window.size = (360, 640)
 
-    if is_android:
-        # 1) getExternalFilesDir — никаких разрешений, Android 4.4+
-        try:
-            from jnius import autoclass
-            ctx = autoclass("org.kivy.android.PythonActivity").mActivity
-            d = ctx.getExternalFilesDir(None)
-            if d is not None:
-                path = d.getAbsolutePath()
-                os.makedirs(path, exist_ok=True)
-                t = os.path.join(path, ".wtest")
-                open(t, "w").close()
-                os.remove(t)
-                return os.path.join(path, "NEVPN_crash_log.txt")
-        except Exception:
-            pass
-
-        # 2) getCacheDir — всегда доступен
-        try:
-            from jnius import autoclass
-            ctx = autoclass("org.kivy.android.PythonActivity").mActivity
-            path = ctx.getCacheDir().getAbsolutePath()
-            os.makedirs(path, exist_ok=True)
-            return os.path.join(path, "NEVPN_crash_log.txt")
-        except Exception:
-            pass
-
-        # 3) getFilesDir — внутренняя память
-        try:
-            from jnius import autoclass
-            ctx = autoclass("org.kivy.android.PythonActivity").mActivity
-            path = ctx.getFilesDir().getAbsolutePath()
-            os.makedirs(path, exist_ok=True)
-            return os.path.join(path, "NEVPN_crash_log.txt")
-        except Exception:
-            pass
-
-        # 4) Жёсткие пути с проверкой записи
-        for base in [
-            "/storage/emulated/0/Android/data/org.nevpn/files",
-            "/data/data/org.nevpn/cache",
-            "/data/data/org.nevpn/files",
-        ]:
-            try:
-                os.makedirs(base, exist_ok=True)
-                t = os.path.join(base, ".wtest")
-                open(t, "w").close()
-                os.remove(t)
-                return os.path.join(base, "NEVPN_crash_log.txt")
-            except Exception:
-                continue
-
-        return "/data/local/tmp/NEVPN_crash_log.txt"
-    else:
-        return os.path.join(os.path.dirname(os.path.abspath(__file__)), "crash_log.txt")
-
-
-def write_crash_log(exc_type, exc_value, exc_tb):
-    """Пишет лог — никогда не бросает исключений."""
-    try:
-        path = get_crash_log_path()
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        lines = [
-            "=" * 60,
-            "CRASH  " + now,
-            "=" * 60,
-            "Platform: " + sys.platform,
-            "Python: " + sys.version,
-            "",
-            "--- Traceback ---",
-            "".join(traceback.format_exception(exc_type, exc_value, exc_tb)),
-            "",
-        ]
-        with open(path, "a", encoding="utf-8") as f:
-            f.write("\n".join(lines))
-    except Exception:
-        pass
-
-
-def handle_exception(exc_type, exc_value, exc_tb):
-    if issubclass(exc_type, KeyboardInterrupt):
-        sys.__excepthook__(exc_type, exc_value, exc_tb)
-        return
-    write_crash_log(exc_type, exc_value, exc_tb)
-    sys.__excepthook__(exc_type, exc_value, exc_tb)
-
-
-sys.excepthook = handle_exception
-
-_orig_thread_hook = threading.excepthook
-def _thread_exception_handler(args):
-    if args.exc_type and not issubclass(args.exc_type, SystemExit):
-        write_crash_log(args.exc_type, args.exc_value, args.exc_traceback)
-    _orig_thread_hook(args)
-threading.excepthook = _thread_exception_handler
-
-
-# ══ Kivy — после crash handler ═══════════════════════════════
 from kivymd.app import MDApp
-from kivymd.uix.card import MDCard
 from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen, ScreenManager
-from kivy.core.window import Window
-from kivy.logger import Logger
+from kivymd.uix.list import OneLineAvatarIconListItem, IconRightWidget, ImageLeftWidget
 from kivy.properties import StringProperty, BooleanProperty
 from kivy.metrics import dp
 from kivy.animation import Animation
-from kivy.utils import platform
 
-try:
-    if platform != "android":
-        Window.size = (360, 640)
-except Exception:
-    pass
+# Логгер крашей на телефоне
+import traceback as _tb
 
+def _crash_hook(exc_type, exc_value, exc_tb):
+    try:
+        with open('/sdcard/nevpn_crash.txt', 'a') as f:
+            import datetime
+            f.write(f'\n{"="*60}\n')
+            f.write(f'CRASH  {datetime.datetime.now()}\n')
+            f.write(f'Platform: {platform}\n')
+            f.write(f'Python: {sys.version}\n\n')
+            f.write('--- Traceback ---\n')
+            _tb.print_exception(exc_type, exc_value, exc_tb, file=f)
+    except Exception:
+        pass
+    sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+sys.excepthook = _crash_hook
 
 KV = '''
 #:import dp kivy.metrics.dp
@@ -160,54 +61,13 @@ KV = '''
     padding: [16, 0, 16, 0]
     spacing: 12
 
-<ServerListItem>:
-    size_hint_y: None
-    height: "60dp"
-    radius: [16]
-    md_bg_color: 0.95, 0.95, 0.98, 1
-    elevation: 2
-    ripple_behavior: True
-    padding: [16, 0]
-    on_release: app.root.get_screen('servers').select_server(root.server_name)
-    MDBoxLayout:
-        spacing: 14
-        MDBoxLayout:
-            size_hint: None, None
-            size: "38dp", "38dp"
-            pos_hint: {"center_y": .5}
-            AnchorLayout:
-                Image:
-                    source: root.flag_source
-                    size_hint: None, None
-                    size: "30dp", "22dp"
-                    pos_hint: {"center_x": .5, "center_y": .5}
-        MDLabel:
-            text: root.server_name
-            theme_text_color: "Custom"
-            text_color: 0.1, 0.1, 0.1, 1
-            valign: "middle"
-            size_hint_x: 1
-        MDBoxLayout:
-            size_hint: None, None
-            size: "38dp", "38dp"
-            pos_hint: {"center_y": .5}
-            AnchorLayout:
-                MDIcon:
-                    icon: "chevron-right"
-                    size_hint: None, None
-                    size: "22dp", "22dp"
-                    pos_hint: {"center_x": .5, "center_y": .5}
-                    theme_text_color: "Custom"
-                    text_color: 0.7, 0.7, 0.7, 1
-                    font_size: "20sp"
-
 WindowManager:
     MainScreen:
     SettingsScreen:
     ServersScreen:
     AboutScreen:
 
-# ─── MAIN SCREEN ────────────────────────────────────────────────────
+# ─── MAIN ───────────────────────────────────────────────
 <MainScreen>:
     name: 'main'
     selected_server: "Нидерланды"
@@ -221,38 +81,30 @@ WindowManager:
         padding: [20, 14, 20, 20]
         spacing: 0
 
-        # ── Top bar ──
+        # Топбар
         MDBoxLayout:
             size_hint_y: None
             height: "48dp"
-            spacing: 0
-
             Widget:
                 size_hint_x: None
                 width: "48dp"
-
             AnchorLayout:
                 anchor_x: "center"
                 anchor_y: "center"
-
                 MDCard:
                     adaptive_size: True
                     radius: [14]
                     md_bg_color: 0.95, 0.95, 0.98, 1
                     padding: [12, 6, 14, 6]
                     elevation: 1
-
                     MDBoxLayout:
                         adaptive_size: True
                         spacing: 6
-                        orientation: "horizontal"
-
                         Image:
-                            source: 'images/logo_icon.png'
+                            source: 'image/logo_icon.png'
                             size_hint: None, None
                             size: "22dp", "22dp"
                             pos_hint: {"center_y": .5}
-
                         MDLabel:
                             text: "NEVPN"
                             bold: True
@@ -260,7 +112,6 @@ WindowManager:
                             text_color: 0.1, 0.1, 0.1, 1
                             adaptive_size: True
                             pos_hint: {"center_y": .5}
-
             MDBoxLayout:
                 size_hint_x: None
                 width: "48dp"
@@ -277,10 +128,9 @@ WindowManager:
             size_hint_y: None
             height: "18dp"
 
-        # ── Server selector ──
+        # Выбор сервера
         NeomorphButton:
             on_release: root.manager.current = 'servers'
-
             MDBoxLayout:
                 size_hint: None, None
                 size: "36dp", "36dp"
@@ -293,7 +143,6 @@ WindowManager:
                         pos_hint: {"center_x": .5, "center_y": .5}
                         theme_text_color: "Custom"
                         text_color: 0.35, 0.35, 0.45, 1
-
             MDLabel:
                 text: root.selected_server
                 size_hint_x: 1
@@ -302,7 +151,6 @@ WindowManager:
                 halign: "left"
                 valign: "middle"
                 bold: True
-
             MDBoxLayout:
                 size_hint: None, None
                 size: "36dp", "36dp"
@@ -320,11 +168,10 @@ WindowManager:
             size_hint_y: None
             height: "24dp"
 
-        # ── Connect button ──
+        # Кнопка подключения
         AnchorLayout:
             size_hint_y: None
             height: "260dp"
-
             MDCard:
                 id: connect_card
                 size_hint: None, None
@@ -332,13 +179,10 @@ WindowManager:
                 radius: [60]
                 md_bg_color: 0.93, 0.94, 0.98, 1
                 elevation: 8
-                shadow_color: 0.75, 0.75, 0.85, 0.6
-
                 MDBoxLayout:
                     orientation: 'vertical'
                     spacing: 14
                     padding: [0, 24, 0, 20]
-
                     MDLabel:
                         id: status_label
                         text: "Connect"
@@ -350,7 +194,6 @@ WindowManager:
                         bold: True
                         size_hint_y: None
                         height: "40dp"
-
                     AnchorLayout:
                         MDCard:
                             id: power_button
@@ -360,8 +203,8 @@ WindowManager:
                             md_bg_color: 0.2, 0.4, 0.9, 1
                             elevation: 6
                             ripple_behavior: True
-                            on_release: root.on_power_press(self)
-
+                            on_touch_down:
+                                if self.collide_point(*args[1].pos): root.on_power_press(self)
                             AnchorLayout:
                                 MDIcon:
                                     id: power_icon
@@ -375,11 +218,10 @@ WindowManager:
             size_hint_y: None
             height: "20dp"
 
-        # ── Traffic stats ──
+        # Трафик
         AnchorLayout:
             size_hint_y: None
             height: "44dp"
-
             MDCard:
                 size_hint: None, None
                 size: "200dp", "36dp"
@@ -387,11 +229,9 @@ WindowManager:
                 md_bg_color: 0.95, 0.95, 0.98, 1
                 elevation: 2
                 padding: [18, 0]
-
                 MDBoxLayout:
                     orientation: "horizontal"
                     spacing: 20
-
                     MDBoxLayout:
                         spacing: 4
                         MDIcon:
@@ -403,14 +243,12 @@ WindowManager:
                             text_color: 0.3, 0.7, 0.4, 1
                             font_size: "14sp"
                         MDLabel:
-                            id: traffic_up_label
                             text: root.traffic_up
                             adaptive_size: True
                             font_style: "Caption"
                             theme_text_color: "Custom"
                             text_color: 0.2, 0.2, 0.2, 1
                             pos_hint: {"center_y": .5}
-
                     MDBoxLayout:
                         spacing: 4
                         MDIcon:
@@ -422,31 +260,26 @@ WindowManager:
                             text_color: 0.25, 0.5, 0.95, 1
                             font_size: "14sp"
                         MDLabel:
-                            id: traffic_down_label
                             text: root.traffic_down
                             adaptive_size: True
                             font_style: "Caption"
                             theme_text_color: "Custom"
                             text_color: 0.2, 0.2, 0.2, 1
                             pos_hint: {"center_y": .5}
-
         Widget:
 
-# ─── SETTINGS SCREEN ────────────────────────────────────────────────
+# ─── SETTINGS ───────────────────────────────────────────
 <SettingsScreen>:
     name: 'settings'
-
     MDBoxLayout:
         orientation: 'vertical'
         md_bg_color: 1, 1, 1, 1
         padding: [20, 14, 20, 20]
         spacing: 0
 
-        # ── Top bar ──
         MDBoxLayout:
             size_hint_y: None
             height: "48dp"
-
             MDBoxLayout:
                 size_hint_x: None
                 width: "48dp"
@@ -458,7 +291,6 @@ WindowManager:
                         theme_text_color: "Custom"
                         text_color: 0.1, 0.1, 0.1, 1
                         on_release: root.manager.current = 'main'
-
             AnchorLayout:
                 anchor_x: "center"
                 anchor_y: "center"
@@ -472,7 +304,7 @@ WindowManager:
                         adaptive_size: True
                         spacing: 6
                         Image:
-                            source: 'images/logo_icon.png'
+                            source: 'image/logo_icon.png'
                             size_hint: None, None
                             size: "22dp", "22dp"
                             pos_hint: {"center_y": .5}
@@ -483,7 +315,6 @@ WindowManager:
                             text_color: 0.1, 0.1, 0.1, 1
                             adaptive_size: True
                             pos_hint: {"center_y": .5}
-
             Widget:
                 size_hint_x: None
                 width: "48dp"
@@ -492,7 +323,6 @@ WindowManager:
             size_hint_y: None
             height: "20dp"
 
-        # ── Title ──
         NeomorphButton:
             ripple_behavior: False
             MDLabel:
@@ -509,65 +339,17 @@ WindowManager:
             size_hint_y: None
             height: "20dp"
 
-        # ── Settings list ──
         ScrollView:
             MDList:
                 spacing: "10dp"
                 padding: [0, 0, 0, 10]
 
-                # Language
                 MDCard:
                     size_hint_y: None
                     height: "60dp"
                     radius: [16]
                     md_bg_color: 0.95, 0.95, 0.98, 1
                     elevation: 2
-                    ripple_behavior: True
-                    padding: [16, 0]
-                    MDBoxLayout:
-                        spacing: 14
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "translate"
-                                    size_hint: None, None
-                                    size: "30dp", "30dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.25, 0.45, 0.9, 1
-                                    font_size: "22sp"
-                        MDLabel:
-                            text: "Язык"
-                            theme_text_color: "Custom"
-                            text_color: 0.1, 0.1, 0.1, 1
-                            valign: "middle"
-                            size_hint_x: 1
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDLabel:
-                                    text: "RU"
-                                    font_style: "Caption"
-                                    bold: True
-                                    theme_text_color: "Custom"
-                                    text_color: 0.5, 0.5, 0.6, 1
-                                    halign: "center"
-                                    adaptive_size: True
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-
-                # Protocol
-                MDCard:
-                    size_hint_y: None
-                    height: "60dp"
-                    radius: [16]
-                    md_bg_color: 0.95, 0.95, 0.98, 1
-                    elevation: 2
-                    ripple_behavior: True
                     padding: [16, 0]
                     MDBoxLayout:
                         spacing: 14
@@ -585,26 +367,12 @@ WindowManager:
                                     text_color: 0.25, 0.45, 0.9, 1
                                     font_size: "22sp"
                         MDLabel:
-                            text: "Протокол"
+                            text: "Протокол: WireGuard"
                             theme_text_color: "Custom"
                             text_color: 0.1, 0.1, 0.1, 1
                             valign: "middle"
                             size_hint_x: 1
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "chevron-right"
-                                    size_hint: None, None
-                                    size: "22dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.7, 0.7, 0.7, 1
-                                    font_size: "20sp"
 
-                # Auto connect
                 MDCard:
                     size_hint_y: None
                     height: "60dp"
@@ -638,7 +406,6 @@ WindowManager:
                             size: "50dp", "30dp"
                             pos_hint: {"center_y": .5}
 
-                # Kill switch
                 MDCard:
                     size_hint_y: None
                     height: "60dp"
@@ -672,51 +439,6 @@ WindowManager:
                             size: "50dp", "30dp"
                             pos_hint: {"center_y": .5}
 
-                # Subscription
-                MDCard:
-                    size_hint_y: None
-                    height: "60dp"
-                    radius: [16]
-                    md_bg_color: 0.95, 0.95, 0.98, 1
-                    elevation: 2
-                    ripple_behavior: True
-                    padding: [16, 0]
-                    MDBoxLayout:
-                        spacing: 14
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "crown-outline"
-                                    size_hint: None, None
-                                    size: "26dp", "26dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.85, 0.65, 0.1, 1
-                                    font_size: "22sp"
-                        MDLabel:
-                            text: "Подписка"
-                            theme_text_color: "Custom"
-                            text_color: 0.1, 0.1, 0.1, 1
-                            valign: "middle"
-                            size_hint_x: 1
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "chevron-right"
-                                    size_hint: None, None
-                                    size: "22dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.7, 0.7, 0.7, 1
-                                    font_size: "20sp"
-
-                # About
                 MDCard:
                     size_hint_y: None
                     height: "60dp"
@@ -760,13 +482,11 @@ WindowManager:
                                     theme_text_color: "Custom"
                                     text_color: 0.7, 0.7, 0.7, 1
                                     font_size: "20sp"
-
         Widget:
 
-# ─── SERVERS SCREEN ─────────────────────────────────────────────────
+# ─── SERVERS ────────────────────────────────────────────
 <ServersScreen>:
     name: 'servers'
-
     MDBoxLayout:
         orientation: 'vertical'
         md_bg_color: 1, 1, 1, 1
@@ -776,7 +496,6 @@ WindowManager:
         MDBoxLayout:
             size_hint_y: None
             height: "48dp"
-
             MDBoxLayout:
                 size_hint_x: None
                 width: "48dp"
@@ -788,7 +507,6 @@ WindowManager:
                         theme_text_color: "Custom"
                         text_color: 0.1, 0.1, 0.1, 1
                         on_release: root.manager.current = 'main'
-
             AnchorLayout:
                 anchor_x: "center"
                 anchor_y: "center"
@@ -802,7 +520,7 @@ WindowManager:
                         adaptive_size: True
                         spacing: 6
                         Image:
-                            source: 'images/logo_icon.png'
+                            source: 'image/logo_icon.png'
                             size_hint: None, None
                             size: "22dp", "22dp"
                             pos_hint: {"center_y": .5}
@@ -813,7 +531,6 @@ WindowManager:
                             text_color: 0.1, 0.1, 0.1, 1
                             adaptive_size: True
                             pos_hint: {"center_y": .5}
-
             Widget:
                 size_hint_x: None
                 width: "48dp"
@@ -840,7 +557,6 @@ WindowManager:
 
         ScrollView:
             MDList:
-                id: server_list
                 spacing: "10dp"
                 padding: [0, 0, 0, 10]
 
@@ -861,7 +577,7 @@ WindowManager:
                             pos_hint: {"center_y": .5}
                             AnchorLayout:
                                 Image:
-                                    source: "images/flag_nl.png"
+                                    source: "image/flag_nl.png"
                                     size_hint: None, None
                                     size: "30dp", "22dp"
                                     pos_hint: {"center_x": .5, "center_y": .5}
@@ -902,7 +618,7 @@ WindowManager:
                             pos_hint: {"center_y": .5}
                             AnchorLayout:
                                 Image:
-                                    source: "images/flag_us.png"
+                                    source: "image/flag_us.png"
                                     size_hint: None, None
                                     size: "30dp", "22dp"
                                     pos_hint: {"center_x": .5, "center_y": .5}
@@ -943,7 +659,7 @@ WindowManager:
                             pos_hint: {"center_y": .5}
                             AnchorLayout:
                                 Image:
-                                    source: "images/flag_jp.png"
+                                    source: "image/flag_jp.png"
                                     size_hint: None, None
                                     size: "30dp", "22dp"
                                     pos_hint: {"center_x": .5, "center_y": .5}
@@ -984,7 +700,7 @@ WindowManager:
                             pos_hint: {"center_y": .5}
                             AnchorLayout:
                                 Image:
-                                    source: "images/flag_de.png"
+                                    source: "image/flag_de.png"
                                     size_hint: None, None
                                     size: "30dp", "22dp"
                                     pos_hint: {"center_x": .5, "center_y": .5}
@@ -1007,13 +723,11 @@ WindowManager:
                                     theme_text_color: "Custom"
                                     text_color: 0.7, 0.7, 0.7, 1
                                     font_size: "20sp"
-
         Widget:
 
-# ─── ABOUT SCREEN ───────────────────────────────────────────────────
+# ─── ABOUT ──────────────────────────────────────────────
 <AboutScreen>:
     name: 'about'
-
     MDBoxLayout:
         orientation: 'vertical'
         md_bg_color: 1, 1, 1, 1
@@ -1023,7 +737,6 @@ WindowManager:
         MDBoxLayout:
             size_hint_y: None
             height: "48dp"
-
             MDBoxLayout:
                 size_hint_x: None
                 width: "48dp"
@@ -1035,7 +748,6 @@ WindowManager:
                         theme_text_color: "Custom"
                         text_color: 0.1, 0.1, 0.1, 1
                         on_release: root.manager.current = 'settings'
-
             AnchorLayout:
                 anchor_x: "center"
                 anchor_y: "center"
@@ -1047,7 +759,6 @@ WindowManager:
                     theme_text_color: "Custom"
                     text_color: 0.1, 0.1, 0.1, 1
                     adaptive_size: True
-
             Widget:
                 size_hint_x: None
                 width: "48dp"
@@ -1067,7 +778,7 @@ WindowManager:
                 elevation: 6
                 AnchorLayout:
                     Image:
-                        source: 'images/logo_icon.png'
+                        source: 'image/logo_icon.png'
                         size_hint: None, None
                         size: "48dp", "48dp"
                         pos_hint: {"center_x": .5, "center_y": .5}
@@ -1107,7 +818,7 @@ WindowManager:
             elevation: 2
             padding: [20, 12]
             MDLabel:
-                text: "Неоморфный VPN-клиент с открытым кодом.\\nРазработано с использованием KivyMD.\\nВсе права защищены © 2025 NEVPN."
+                text: "Неоморфный VPN-клиент.\\nРазработано с использованием KivyMD.\\nAndroid 16 / Samsung A35 5G"
                 halign: "center"
                 valign: "middle"
                 theme_text_color: "Custom"
@@ -1115,11 +826,6 @@ WindowManager:
 
         Widget:
 '''
-
-
-class ServerListItem(MDCard):
-    server_name = StringProperty()
-    flag_source = StringProperty()
 
 
 class MainScreen(Screen):
@@ -1134,11 +840,9 @@ class MainScreen(Screen):
         anim.start(instance)
         self.is_connected = not self.is_connected
         if self.is_connected:
-            print(f"[VPN] Подключено к серверу: {self.selected_server}")
             self.traffic_up = "1.2 KB"
             self.traffic_down = "3.4 KB"
         else:
-            print("[VPN] Отключено")
             self.traffic_up = "0 B"
             self.traffic_down = "0 B"
         self.update_ui()
@@ -1147,26 +851,19 @@ class MainScreen(Screen):
         self.update_ui()
 
     def update_ui(self):
-        status_label = self.ids.status_label
-        power_button = self.ids.power_button
-        power_icon = self.ids.power_icon
-
         if self.is_connected:
-            status_label.text = "Подключено"
-            status_label.text_color = (0.2, 0.7, 0.35, 1)
-            power_icon.icon = "power-plug"
-            power_button.md_bg_color = (0.15, 0.72, 0.35, 1)
+            self.ids.status_label.text = "Подключено"
+            self.ids.status_label.text_color = (0.2, 0.7, 0.35, 1)
+            self.ids.power_icon.icon = "power-plug"
+            self.ids.power_button.md_bg_color = (0.15, 0.72, 0.35, 1)
         else:
-            status_label.text = "Connect"
-            status_label.text_color = (0.55, 0.55, 0.68, 1)
-            power_icon.icon = "power-plug-outline"
-            power_button.md_bg_color = (0.2, 0.4, 0.9, 1)
+            self.ids.status_label.text = "Connect"
+            self.ids.status_label.text_color = (0.55, 0.55, 0.68, 1)
+            self.ids.power_icon.icon = "power-plug-outline"
+            self.ids.power_button.md_bg_color = (0.2, 0.4, 0.9, 1)
 
     def on_kv_post(self, base_widget):
-        try:
-            self.update_ui()
-        except Exception:
-            pass
+        self.update_ui()
 
 
 class SettingsScreen(Screen):
@@ -1175,9 +872,7 @@ class SettingsScreen(Screen):
 
 class ServersScreen(Screen):
     def select_server(self, server_name):
-        main_screen = self.manager.get_screen('main')
-        main_screen.selected_server = server_name
-        print(f"[Servers] Выбран сервер: {server_name}")
+        self.manager.get_screen('main').selected_server = server_name
         self.manager.current = 'main'
 
 
@@ -1191,19 +886,10 @@ class WindowManager(ScreenManager):
 
 class NEVPNApp(MDApp):
     def build(self):
-        try:
-            self.theme_cls.theme_style = "Light"
-            self.theme_cls.primary_palette = "Blue"
-            return Builder.load_string(KV)
-        except Exception as e:
-            Logger.exception("NEVPN: build() failed")
-            write_crash_log(type(e), e, e.__traceback__)
-            raise
+        self.theme_cls.theme_style = "Light"
+        self.theme_cls.primary_palette = "Blue"
+        return Builder.load_string(KV)
 
 
 if __name__ == '__main__':
-    try:
-        NEVPNApp().run()
-    except Exception as e:
-        write_crash_log(type(e), e, e.__traceback__)
-        raise
+    NEVPNApp().run()

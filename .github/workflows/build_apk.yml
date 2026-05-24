@@ -19,13 +19,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Кэш v5 — сбрасывает старый (kivy==2.3.0 был сломан)
+      # v6 — сброс кэша, возврат к kivy==master который реально работает
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
-          key: buildozer-v5-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v5-${{ runner.os }}-
+          key: buildozer-v6-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v6-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -49,15 +49,16 @@ jobs:
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
 
-      - name: Find APK
+      - name: Find APK location
         if: always()
         run: |
-          echo "=== Ищем APK ==="
-          find . -name "*.apk" 2>/dev/null
-          echo "=== Содержимое bin/ ==="
-          ls -la bin/ 2>/dev/null || echo "папки bin/ нет"
+          echo "=== Searching for APK ==="
+          find . -name "*.apk" 2>/dev/null || echo "No APK found"
+          echo "=== bin/ contents ==="
+          ls -lh bin/ 2>/dev/null || echo "No bin/ directory"
 
       - name: Upload APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nevpn-debug-apk
