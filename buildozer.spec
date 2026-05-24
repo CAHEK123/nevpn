@@ -9,12 +9,17 @@ source.include_patterns = images/*.png,images/*.jpg
 
 version = 1.0.0
 
-# ── ИСПРАВЛЕНИЕ КРАША ──────────────────────────────────────
-# Ошибка: AttributeError: 'NoneType' object has no attribute 'width'
-# в kivymd/material_resources.py
-# Причина: kivy==master несовместим с kivymd==1.2.0
-# Решение: используем kivy==2.3.0 — стабильная версия под kivymd 1.2.0
-requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow
+# ── СОВМЕСТИМОСТЬ kivy + NDK ───────────────────────────────
+# Проблема: kivy==2.3.0 не компилируется с NDK r25b
+#   error: too few arguments to function call, expected 6, have 5
+#   (OpenGL ES функции изменились в NDK r23+)
+#
+# Решение: kivy==2.2.1 — последняя версия совместимая с NDK r25b
+#          kivymd==1.1.1 — совместима с kivy 2.2.1
+#
+# Проверенная рабочая комбинация:
+#   kivy==2.2.1 + kivymd==1.1.1 + NDK r25b
+requirements = python3,kivy==2.2.1,kivymd==1.1.1,pillow
 
 orientation = portrait
 fullscreen = 0
@@ -25,9 +30,9 @@ icon.filename = images/logo_icon.png
 android.permissions = INTERNET
 
 android.minapi = 26
-android.api = 36
+android.api = 33
 android.ndk = 25b
-android.sdk = 36
+android.sdk = 33
 android.accept_sdk_license = True
 android.archs = arm64-v8a
 android.allow_backup = False
