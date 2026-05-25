@@ -19,15 +19,15 @@ jobs:
         with:
           python-version: '3.11'
 
-      # v6 — сбрасывает все старые кэши (v4 был со сломанным kivy)
+      # v9 — кэш после добавления p4a.branch = develop
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: |
             ~/.buildozer
             ~/.gradle
-          key: buildozer-v6-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v6-${{ runner.os }}-
+          key: buildozer-v9-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v9-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -44,7 +44,13 @@ jobs:
       - name: Install Buildozer and Cython
         run: |
           pip3 install --upgrade pip
-          pip3 install buildozer==1.5.0 cython==0.29.37
+          pip3 install Cython==0.29.33
+          pip3 install buildozer==1.5.0
+
+      - name: Verify files
+        run: |
+          echo "=== buildozer.spec ===" && cat buildozer.spec
+          echo "=== images/ ===" && ls images/ 2>/dev/null || echo "WARN: папки images/ нет"
 
       - name: Build debug APK
         run: |
