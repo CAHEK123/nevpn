@@ -28,8 +28,8 @@ jobs:
           path: |
             ~/.buildozer
             ~/.gradle
-          key: buildozer-v300-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v300-${{ runner.os }}-
+          key: buildozer-v400-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v400-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -43,20 +43,36 @@ jobs:
             ccache lld libltdl-dev \
             build-essential
 
-      - name: Install Buildozer, Cython and p4a @ Python-3.11 commit
+      - name: Install Buildozer and Cython
         run: |
           pip install --upgrade pip
           pip install Cython==0.29.37
-
-          # buildozer без авто-зависимостей — иначе pip подтянет p4a с develop (Python 3.14)
-          pip install buildozer==1.5.0 --no-deps
-          pip install colorama appdirs six pexpect "sh>=1.10,<2.0"
-
-          # p4a зафиксирован на коммит 83e74ca (Python 3.11, ноябрь 2023)
-          pip install "git+https://github.com/kivy/python-for-android.git@83e74ca"
+          # Ставим buildozer С зависимостями — он подтянет p4a v2024.01.21 с PyPI
+          # Это последний официальный релиз где hostpython3 дефолтно = 3.11.9
+          pip install buildozer==1.5.0
 
       - name: Verify p4a version
         run: python -c "import pythonforandroid; print(pythonforandroid.__version__)"
+
+      - name: Patch hostpython3 default version to 3.11.9
+        run: |
+          # Находим файл рецепта hostpython3 и смотрим текущий дефолт
+          HP3=$(python -c "import pythonforandroid; import os; print(os.path.dirname(pythonforandroid.__file__))")/recipes/hostpython3/__init__.py
+          echo "=== Before patch ==="
+          grep -n "version\s*=" "$HP3" | head -5
+          # Патчим дефолтную версию если она не 3.11.9
+          sed -i "s/version = '[0-9]\+\.[0-9]\+\.[0-9]\+'/version = '3.11.9'/" "$HP3"
+          echo "=== After patch ==="
+          grep -n "version\s*=" "$HP3" | head -5
+
+      - name: Patch python3 default version to 3.11.9
+        run: |
+          PY3=$(python -c "import pythonforandroid; import os; print(os.path.dirname(pythonforandroid.__file__))")/recipes/python3/__init__.py
+          echo "=== Before patch ==="
+          grep -n "version\s*=" "$PY3" | head -5
+          sed -i "s/version = '[0-9]\+\.[0-9]\+\.[0-9]\+'/version = '3.11.9'/" "$PY3"
+          echo "=== After patch ==="
+          grep -n "version\s*=" "$PY3" | head -5
 
       - name: Prepare assets (images/ folder)
         run: |
