@@ -19,15 +19,15 @@ jobs:
         with:
           python-version: '3.11'
 
-      # v15 — master p4a + NDK r23b + kivy 2.3.0
+      # v17 — master p4a + NDK r23b + kivy 2.3.0
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: |
             ~/.buildozer
             ~/.gradle
-          key: buildozer-v15-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v15-${{ runner.os }}-
+          key: buildozer-v17-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v17-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |

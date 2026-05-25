@@ -9,11 +9,11 @@ source.include_patterns = images/*.png,images/*.jpg
 
 version = 1.0.0
 
-# Рабочая комбинация без cgi-проблем:
-# - p4a.branch = master (hostpython3 = 3.11.x, там cgi ещё есть)
-# - python3 без версии (согласуется с hostpython3 = 3.11.x)
-# - kivy==2.3.0 + kivymd==1.2.0 совместимы с NDK r23b + Python 3.11
+# ФИКСИРУЕМ PYTHON 3.11.9 И СТАРУЮ ВЕРСИЮ P4A
 requirements = python3==3.11.9,kivy==2.3.0,kivymd==1.2.0,pillow,pyjnius
+hostpython3 = python3==3.11.9
+p4a.version = 2023.09.16
+
 orientation = portrait
 fullscreen = 0
 
@@ -29,9 +29,6 @@ android.accept_sdk_license = True
 android.archs = arm64-v8a
 android.allow_backup = False
 android.enable_androidx = True
-
-# master ветка p4a — hostpython3 = 3.11.x, cgi ещё присутствует
-p4a.branch = master
 
 android.logcat_filters = *:S python:D
 
