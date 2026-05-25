@@ -28,8 +28,8 @@ jobs:
           path: |
             ~/.buildozer
             ~/.gradle
-          key: buildozer-v300-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v300-${{ runner.os }}-
+          key: buildozer-v400-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v400-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
