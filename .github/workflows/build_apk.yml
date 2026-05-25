@@ -19,13 +19,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      # v7 — kivy==2.3.0 (стабильная) + сброс кэша
+      # Кэш с новым ключом v4 — сбросит старый кэш
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: ~/.buildozer
-          key: buildozer-v7-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v7-${{ runner.os }}-
+          key: buildozer-v4-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v4-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -48,22 +48,22 @@ jobs:
           buildozer android debug 2>&1 | tee build.log
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-      - name: Find APK location
+      - name: Find APK
         if: always()
         run: |
-          echo "=== Searching for APK ==="
-          find . -name "*.apk" 2>/dev/null || echo "No APK found"
-          echo "=== bin/ contents ==="
-          ls -lh bin/ 2>/dev/null || echo "No bin/ directory"
+          echo "=== Ищем APK ==="
+          find . -name "*.apk" 2>/dev/null
+          echo "=== Содержимое bin/ ==="
+          ls -la bin/ 2>/dev/null || echo "папки bin/ нет"
 
       - name: Upload APK
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nevpn-debug-apk
-          path: bin/*.apk
+          path: |
+            bin/*.apk
+            **/*.apk
           if-no-files-found: warn
           retention-days: 30
 
