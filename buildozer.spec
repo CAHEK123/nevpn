@@ -9,8 +9,8 @@ source.include_patterns = images/*.png,images/*.jpg
 
 version = 1.0.0
 
-# НЕ указываем p4a.version / p4a.branch — p4a устанавливается вручную в yml
-# через pip install git+https://...@<коммит> чтобы зафиксировать Python 3.11
+# Реальный хэш тега v2024.01.21 — последний релиз с Python 3.11
+p4a.commit = 957a3e5
 
 requirements = python3==3.11.9,kivy==2.3.0,kivymd==1.2.0,pillow,pyjnius
 
