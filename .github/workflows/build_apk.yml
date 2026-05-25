@@ -19,15 +19,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      # v17 — master p4a + NDK r23b + kivy 2.3.0
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: |
             ~/.buildozer
             ~/.gradle
-          key: buildozer-v17-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v17-${{ runner.os }}-
+          key: buildozer-v20-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v20-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -47,11 +46,16 @@ jobs:
           pip3 install Cython==0.29.37
           pip3 install buildozer==1.5.0
 
-      - name: Set HOSTPYTHON to Python 3.11          # <-- НОВЫЙ ШАГ
+      - name: Set HOSTPYTHON to Python 3.11
         run: |
           PYTHON311_PATH=$(which python3.11)
           echo "HOSTPYTHON=$PYTHON311_PATH" >> $GITHUB_ENV
           echo "Using HOSTPYTHON=$PYTHON311_PATH"
+
+      - name: Clean old p4a cache (remove Python 3.14 traces)
+        run: |
+          rm -rf ~/.buildozer/android/platform/python-for-android
+          rm -rf ~/.buildozer/android/platform/build-arm64-v8a/build/other_builds/hostpython3
 
       - name: Verify files
         run: |
@@ -63,7 +67,7 @@ jobs:
           buildozer android debug -v 2>&1 | tee build.log
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-          HOSTPYTHON: ${{ env.HOSTPYTHON }}            # <-- ДОБАВЛЕНО
+          HOSTPYTHON: ${{ env.HOSTPYTHON }}
 
       - name: Find APK
         if: always()

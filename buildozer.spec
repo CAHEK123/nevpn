@@ -9,10 +9,10 @@ source.include_patterns = images/*.png,images/*.jpg
 
 version = 1.0.0
 
-# ФИКСИРУЕМ PYTHON 3.11.9 И СТАРУЮ ВЕРСИЮ P4A
+# Используем master ветку p4a (фиксированная, без 3.14)
+p4a.branch = master
+
 requirements = python3==3.11.9,kivy==2.3.0,kivymd==1.2.0,pillow,pyjnius
-hostpython3 = python3==3.11.9
-p4a.version = 2023.09.16
 
 orientation = portrait
 fullscreen = 0
@@ -24,7 +24,6 @@ android.permissions = INTERNET
 android.minapi = 26
 android.api = 33
 android.ndk = 25b
-android.sdk = 33
 android.accept_sdk_license = True
 android.archs = arm64-v8a
 android.allow_backup = False
