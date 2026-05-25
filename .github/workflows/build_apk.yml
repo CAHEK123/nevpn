@@ -50,7 +50,7 @@ jobs:
 
           # Устанавливаем buildozer без зависимости p4a (она подтянет develop)
           pip install buildozer==1.5.0 --no-deps
-          pip install colorama appdirs six sh>=1.10,<2.0
+          pip install colorama appdirs six "sh>=1.10,<2.0"
 
           # Фиксируем p4a на коммит 83e74ca — последний стабильный с Python 3.11
           # (слит в develop 18 ноября 2023, ДО перехода на 3.12/3.13/3.14)
