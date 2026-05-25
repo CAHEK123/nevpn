@@ -43,7 +43,7 @@ jobs:
           pip3 install buildozer==1.5.0 cython==0.29.37
 
       - name: Clean Buildozer cache
-        run: buildozer clean
+        run: buildozer android clean
 
       - name: Build debug APK
         run: |
