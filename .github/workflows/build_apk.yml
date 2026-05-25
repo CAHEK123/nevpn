@@ -1,72 +1,85 @@
 name: Build Android APK
- 
+
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
- 
+
 jobs:
   build:
     name: Build APK
     runs-on: ubuntu-22.04
- 
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
- 
-      # НЕ используем setup-python — он ставит 3.11.15, что конфликтует
-      # с hostpython3 внутри p4a. Используем системный Python ubuntu-22.04.
- 
+
+      - name: Set up Python 3.11.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+
+      - name: Wipe stale Buildozer cache
+        run: rm -rf ~/.buildozer
+
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: |
             ~/.buildozer
             ~/.gradle
-          key: buildozer-v100-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v100-${{ runner.os }}-
- 
+          key: buildozer-v300-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v300-${{ runner.os }}-
+
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y \
-            python3 python3-pip git zip unzip \
+            python3-pip git zip unzip \
             openjdk-17-jdk \
             autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw5-dev \
             cmake libffi-dev libssl-dev \
             ccache lld libltdl-dev \
             build-essential
- 
-      - name: Install Buildozer and Cython
+
+      - name: Install Buildozer, Cython and p4a @ Python-3.11 commit
         run: |
-          pip3 install --upgrade pip
-          pip3 install Cython==0.29.37
-          pip3 install buildozer==1.5.0
- 
-      - name: Prepare assets (image/ folder)
+          pip install --upgrade pip
+          pip install Cython==0.29.37
+
+          # Устанавливаем buildozer без зависимости p4a (она подтянет develop)
+          pip install buildozer==1.5.0 --no-deps
+          pip install colorama appdirs six sh>=1.10,<2.0
+
+          # Фиксируем p4a на коммит 83e74ca — последний стабильный с Python 3.11
+          # (слит в develop 18 ноября 2023, ДО перехода на 3.12/3.13/3.14)
+          pip install \
+            "git+https://github.com/kivy/python-for-android.git@83e74ca"
+
+      - name: Verify p4a version
+        run: python -c "import pythonforandroid; print(pythonforandroid.__version__)"
+
+      - name: Prepare assets (images/ folder)
         run: |
           mkdir -p images
-          # На случай если PNG лежат в корне, а не в images/
           for f in flag_de.png flag_jp.png flag_nl.png flag_us.png logo_icon.png; do
             [ -f "$f" ] && cp "$f" images/ || true
           done
           echo "=== images/ ===" && ls images/
- 
+
       - name: Build debug APK
         run: |
           buildozer android debug 2>&1 | tee build.log
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
- 
+
       - name: Find APK
         if: always()
         run: |
-          echo "=== Ищем APK ==="
           find . -name "*.apk" 2>/dev/null || echo "APK не найден"
-          echo "=== Содержимое bin/ ==="
           ls -la bin/ 2>/dev/null || echo "папки bin/ нет"
- 
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -75,7 +88,7 @@ jobs:
           path: bin/*.apk
           if-no-files-found: warn
           retention-days: 30
- 
+
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
