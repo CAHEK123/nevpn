@@ -28,8 +28,8 @@ jobs:
           path: |
             ~/.buildozer
             ~/.gradle
-          key: buildozer-v400-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v400-${{ runner.os }}-
+          key: buildozer-v300-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v300-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -48,14 +48,12 @@ jobs:
           pip install --upgrade pip
           pip install Cython==0.29.37
 
-          # Устанавливаем buildozer без зависимости p4a (она подтянет develop)
+          # buildozer без авто-зависимостей — иначе pip подтянет p4a с develop (Python 3.14)
           pip install buildozer==1.5.0 --no-deps
-          pip install colorama appdirs six "sh>=1.10,<2.0"
+          pip install colorama appdirs six pexpect "sh>=1.10,<2.0"
 
-          # Фиксируем p4a на коммит 83e74ca — последний стабильный с Python 3.11
-          # (слит в develop 18 ноября 2023, ДО перехода на 3.12/3.13/3.14)
-          pip install \
-            "git+https://github.com/kivy/python-for-android.git@83e74ca"
+          # p4a зафиксирован на коммит 83e74ca (Python 3.11, ноябрь 2023)
+          pip install "git+https://github.com/kivy/python-for-android.git@83e74ca"
 
       - name: Verify p4a version
         run: python -c "import pythonforandroid; print(pythonforandroid.__version__)"
