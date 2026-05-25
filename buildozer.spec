@@ -13,7 +13,8 @@ version = 1.0.0
 # - p4a.branch = master (hostpython3 = 3.11.x, там cgi ещё есть)
 # - python3 без версии (согласуется с hostpython3 = 3.11.x)
 # - kivy==2.3.0 + kivymd==1.2.0 совместимы с NDK r23b + Python 3.11
-requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow,pyjnius
+hostpython3 = python3==3.11.9
+requirements = python3==3.11.9,kivy==2.3.0,kivymd==1.2.0,pillow,pyjnius
 
 orientation = portrait
 fullscreen = 0
