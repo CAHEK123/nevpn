@@ -9,10 +9,11 @@ source.include_patterns = images/*.png,images/*.jpg
 
 version = 1.0.0
 
-# python3==3.11.9 фиксирует hostpython3 — в 3.14 нет модуля cgi
-# p4a.branch = develop — ветка где cgi-проблема уже исправлена
-# kivy==2.2.1 + kivymd==1.1.1 — рабочая пара под NDK r25b
-requirements = python3==3.11.9,kivy==2.2.1,kivymd==1.1.1,pillow,pyjnius
+# Рабочая комбинация без cgi-проблем:
+# - p4a.branch = master (hostpython3 = 3.11.x, там cgi ещё есть)
+# - python3 без версии (согласуется с hostpython3 = 3.11.x)
+# - kivy==2.3.0 + kivymd==1.2.0 совместимы с NDK r23b + Python 3.11
+requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow,pyjnius
 
 orientation = portrait
 fullscreen = 0
@@ -23,15 +24,16 @@ android.permissions = INTERNET
 
 android.minapi = 26
 android.api = 33
-android.ndk = 25b
+# NDK r23b — совместим с kivy==2.3.0 (в r25b были ошибки OpenGL)
+android.ndk = 23b
 android.sdk = 33
 android.accept_sdk_license = True
 android.archs = arm64-v8a
 android.allow_backup = False
 android.enable_androidx = True
 
-# Используем develop-ветку p4a — там исправлена совместимость с Python 3.14
-p4a.branch = develop
+# master ветка p4a — hostpython3 = 3.11.x, cgi ещё присутствует
+p4a.branch = master
 
 android.logcat_filters = *:S python:D
 
