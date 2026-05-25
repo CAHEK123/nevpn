@@ -9,8 +9,7 @@ source.include_patterns = images/*.png,images/*.jpg
 
 version = 1.0.0
 
-# Используем master ветку p4a (фиксированная, без 3.14)
-p4a.branch = master
+p4a.version = v2024.01.21
 
 requirements = python3==3.11.9,kivy==2.3.0,kivymd==1.2.0,pillow,pyjnius
 

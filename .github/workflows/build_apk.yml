@@ -19,14 +19,18 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Cache Buildozer
+      # Полностью сбрасываем кэш, чтобы не было остатков 3.14
+      - name: Wipe all Buildozer caches
+        run: rm -rf ~/.buildozer
+
+      - name: Cache Buildozer (fresh)
         uses: actions/cache@v4
         with:
           path: |
             ~/.buildozer
             ~/.gradle
-          key: buildozer-v20-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v20-${{ runner.os }}-
+          key: buildozer-v99-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v99-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -51,11 +55,6 @@ jobs:
           PYTHON311_PATH=$(which python3.11)
           echo "HOSTPYTHON=$PYTHON311_PATH" >> $GITHUB_ENV
           echo "Using HOSTPYTHON=$PYTHON311_PATH"
-
-      - name: Clean old p4a cache (remove Python 3.14 traces)
-        run: |
-          rm -rf ~/.buildozer/android/platform/python-for-android
-          rm -rf ~/.buildozer/android/platform/build-arm64-v8a/build/other_builds/hostpython3
 
       - name: Verify files
         run: |
