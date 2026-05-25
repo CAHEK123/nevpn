@@ -1,73 +1,64 @@
 name: Build Android APK
-
+ 
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
-
+ 
 jobs:
   build:
     name: Build APK
     runs-on: ubuntu-22.04
-
+ 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      # Полностью сбрасываем кэш, чтобы не было остатков 3.14
-      - name: Wipe all Buildozer caches
-        run: rm -rf ~/.buildozer
-
-      - name: Cache Buildozer (fresh)
+ 
+      # НЕ используем setup-python — он ставит 3.11.15, что конфликтует
+      # с hostpython3 внутри p4a. Используем системный Python ubuntu-22.04.
+ 
+      - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: |
             ~/.buildozer
             ~/.gradle
-          key: buildozer-v99-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v99-${{ runner.os }}-
-
+          key: buildozer-v100-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v100-${{ runner.os }}-
+ 
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y \
-            python3-pip git zip unzip \
+            python3 python3-pip git zip unzip \
             openjdk-17-jdk \
             autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw5-dev \
             cmake libffi-dev libssl-dev \
             ccache lld libltdl-dev \
             build-essential
-
+ 
       - name: Install Buildozer and Cython
         run: |
           pip3 install --upgrade pip
           pip3 install Cython==0.29.37
           pip3 install buildozer==1.5.0
-
-      - name: Set HOSTPYTHON to Python 3.11
+ 
+      - name: Prepare assets (image/ folder)
         run: |
-          PYTHON311_PATH=$(which python3.11)
-          echo "HOSTPYTHON=$PYTHON311_PATH" >> $GITHUB_ENV
-          echo "Using HOSTPYTHON=$PYTHON311_PATH"
-
-      - name: Verify files
-        run: |
-          echo "=== buildozer.spec ===" && cat buildozer.spec
-          echo "=== images/ ===" && ls images/ 2>/dev/null || echo "WARN: папки images/ нет"
-
+          mkdir -p images
+          # На случай если PNG лежат в корне, а не в images/
+          for f in flag_de.png flag_jp.png flag_nl.png flag_us.png logo_icon.png; do
+            [ -f "$f" ] && cp "$f" images/ || true
+          done
+          echo "=== images/ ===" && ls images/
+ 
       - name: Build debug APK
         run: |
-          buildozer android debug -v 2>&1 | tee build.log
+          buildozer android debug 2>&1 | tee build.log
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
-          HOSTPYTHON: ${{ env.HOSTPYTHON }}
-
+ 
       - name: Find APK
         if: always()
         run: |
@@ -75,7 +66,7 @@ jobs:
           find . -name "*.apk" 2>/dev/null || echo "APK не найден"
           echo "=== Содержимое bin/ ==="
           ls -la bin/ 2>/dev/null || echo "папки bin/ нет"
-
+ 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -84,7 +75,7 @@ jobs:
           path: bin/*.apk
           if-no-files-found: warn
           retention-days: 30
-
+ 
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4

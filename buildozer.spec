@@ -11,7 +11,7 @@ version = 1.0.0
 
 p4a.version = v2024.01.21
 
-requirements = python3==3.11.9,kivy==2.3.0,kivymd==1.2.0,pillow,pyjnius
+requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow,pyjnius
 
 orientation = portrait
 fullscreen = 0
