@@ -19,13 +19,15 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Кэш с новым ключом v4 — сбросит старый кэш
+      # v6 — сбрасывает все старые кэши (v4 был со сломанным kivy)
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
-          path: ~/.buildozer
-          key: buildozer-v4-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v4-${{ runner.os }}-
+          path: |
+            ~/.buildozer
+            ~/.gradle
+          key: buildozer-v6-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v6-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -36,7 +38,8 @@ jobs:
             autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw5-dev \
             cmake libffi-dev libssl-dev \
-            ccache lld libltdl-dev
+            ccache lld libltdl-dev \
+            build-essential
 
       - name: Install Buildozer and Cython
         run: |
@@ -53,17 +56,16 @@ jobs:
         if: always()
         run: |
           echo "=== Ищем APK ==="
-          find . -name "*.apk" 2>/dev/null
+          find . -name "*.apk" 2>/dev/null || echo "APK не найден"
           echo "=== Содержимое bin/ ==="
           ls -la bin/ 2>/dev/null || echo "папки bin/ нет"
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: nevpn-debug-apk
-          path: |
-            bin/*.apk
-            **/*.apk
+          path: bin/*.apk
           if-no-files-found: warn
           retention-days: 30
 
