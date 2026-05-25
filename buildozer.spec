@@ -24,8 +24,7 @@ android.permissions = INTERNET
 
 android.minapi = 26
 android.api = 33
-# NDK r23b — совместим с kivy==2.3.0 (в r25b были ошибки OpenGL)
-android.ndk = 23b
+android.ndk = 25b
 android.sdk = 33
 android.accept_sdk_license = True
 android.archs = arm64-v8a
