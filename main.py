@@ -2,20 +2,17 @@
 import sys
 import os
 
+# Фикс краша AttributeError: 'NoneType'.width на Kivy 2.2.0+ + KivyMD 1.2.0:
+# Kivy 2.2.0+ перестал создавать Window автоматически при импорте.
+# KivyMD лезет в Window.width (и Window.bind) при загрузке своих модулей —
+# до того как Window реально создан. Решение: форсировать импорт Window
+# ДО любого импорта KivyMD. Этот импорт и создаёт настоящее окно.
 os.environ.setdefault('KIVY_NO_ENV_CONFIG', '1')
 
 import kivy
 kivy.require('2.0.0')
 
-# Kivy 2.2.0+ использует отложенную инициализацию — простой импорт Window
-# не создаёт окно, переменная остаётся None. KivyMD при загрузке лезет
-# в Window.width и Window.bind — и крашится. Фикс: явно вызвать create_window()
-# ДО любого импорта KivyMD.
-from kivy.core.window import Window, create_window
-if Window is None:
-    create_window()
-    from kivy.core.window import Window  # обновляем переменную после создания
-
+from kivy.core.window import Window  # noqa: E402 — создаёт Window до KivyMD
 from kivy.utils import platform
 
 if platform != 'android':

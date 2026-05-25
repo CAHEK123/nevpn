@@ -9,10 +9,9 @@ source.include_patterns = image/*.png,image/*.jpg,image/*.jpeg
 
 version = 1.0.0
 
-# ВАЖНО: kivy и kivymd — БЕЗ ==версии.
-# p4a использует встроенные рецепты, а не pip.
-# Если указать ==версию — p4a пытается поставить через pip и падает.
-requirements = python3,kivy,kivymd,pillow
+# kivy==master работает с NDK r25b (проверено первой успешной сборкой)
+# kivymd==1.2.0 — патч в main.py фиксит краш с Window
+requirements = python3,kivy==2.3.0,kivymd==1.2.0,pillow
 
 orientation = portrait
 fullscreen = 0
@@ -23,13 +22,15 @@ android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 android.minapi = 26
 android.api = 34
 android.ndk = 25b
+android.sdk = 34
 android.accept_sdk_license = True
 android.archs = arm64-v8a
 android.allow_backup = False
 
-# Тег p4a нужно указывать С префиксом v — именно так называются теги в git.
-# v2024.01.21 содержит рецепты: kivy 2.3.0, kivymd 1.2.0, python 3.11
-p4a.branch = v2024.01.21
+# Фиксируем Python 3.11 — Kivy 2.3.0 + Cython 0.29.x не компилируются
+# под Python 3.12+ из-за изменений в C API (_PyLong_AsByteArray и др.)
+p4a.python_version = 3.11
+p4a.branch = master
 
 [buildozer]
 log_level = 2
