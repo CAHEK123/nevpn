@@ -19,15 +19,15 @@ jobs:
         with:
           python-version: '3.11'
 
-      # v13 — master p4a + NDK r23b + kivy 2.3.0
+      # v15 — master p4a + NDK r23b + kivy 2.3.0
       - name: Cache Buildozer
         uses: actions/cache@v4
         with:
           path: |
             ~/.buildozer
             ~/.gradle
-          key: buildozer-v13-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: buildozer-v13-${{ runner.os }}-
+          key: buildozer-v15-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-v15-${{ runner.os }}-
 
       - name: Install system dependencies
         run: |
@@ -47,6 +47,12 @@ jobs:
           pip3 install Cython==0.29.37
           pip3 install buildozer==1.5.0
 
+      - name: Set HOSTPYTHON to Python 3.11          # <-- НОВЫЙ ШАГ
+        run: |
+          PYTHON311_PATH=$(which python3.11)
+          echo "HOSTPYTHON=$PYTHON311_PATH" >> $GITHUB_ENV
+          echo "Using HOSTPYTHON=$PYTHON311_PATH"
+
       - name: Verify files
         run: |
           echo "=== buildozer.spec ===" && cat buildozer.spec
@@ -54,9 +60,10 @@ jobs:
 
       - name: Build debug APK
         run: |
-          buildozer android debug 2>&1 | tee build.log
+          buildozer android debug -v 2>&1 | tee build.log
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          HOSTPYTHON: ${{ env.HOSTPYTHON }}            # <-- ДОБАВЛЕНО
 
       - name: Find APK
         if: always()
