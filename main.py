@@ -206,6 +206,8 @@ WindowManager:
     SettingsScreen:
     ServersScreen:
     AboutScreen:
+    ProtocolScreen:
+    SubscriptionScreen:
 
 # ─── MAIN SCREEN ────────────────────────────────────────────────────
 <MainScreen>:
@@ -341,7 +343,7 @@ WindowManager:
 
                     MDLabel:
                         id: status_label
-                        text: "Connect"
+                        text: app.lang_connect
                         halign: "center"
                         valign: "top"
                         font_style: "H5"
@@ -509,257 +511,293 @@ WindowManager:
             size_hint_y: None
             height: "20dp"
 
-        # ── Settings list ──
-        ScrollView:
-            MDList:
-                spacing: "10dp"
-                padding: [0, 0, 0, 10]
+        # ── Settings list — статичный, не скроллится, карточки отдельные ──
+        MDBoxLayout:
+            orientation: 'vertical'
+            spacing: "10dp"
+            size_hint_y: None
+            height: self.minimum_height
 
-                # Language
-                MDCard:
-                    size_hint_y: None
-                    height: "60dp"
-                    radius: [16]
-                    md_bg_color: 0.95, 0.95, 0.98, 1
-                    elevation: 2
-                    ripple_behavior: True
-                    padding: [16, 0]
+            # Язык
+            MDCard:
+                size_hint_y: None
+                height: "60dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                ripple_behavior: True
+                padding: [16, 0, 16, 0]
+                on_release: app.toggle_language()
+                MDBoxLayout:
+                    spacing: 14
                     MDBoxLayout:
-                        spacing: 14
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "translate"
-                                    size_hint: None, None
-                                    size: "30dp", "30dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.25, 0.45, 0.9, 1
-                                    font_size: "22sp"
-                        MDLabel:
-                            text: "Язык"
-                            theme_text_color: "Custom"
-                            text_color: 0.1, 0.1, 0.1, 1
-                            valign: "middle"
-                            size_hint_x: 1
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDLabel:
-                                    text: "RU"
-                                    font_style: "Caption"
-                                    bold: True
-                                    theme_text_color: "Custom"
-                                    text_color: 0.5, 0.5, 0.6, 1
-                                    halign: "center"
-                                    adaptive_size: True
-                                    pos_hint: {"center_x": .5, "center_y": .5}
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "translate"
+                                size_hint: None, None
+                                size: "26dp", "26dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.25, 0.45, 0.9, 1
+                                font_size: "22sp"
+                    MDLabel:
+                        id: settings_lang_title
+                        text: app.lang_settings
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+                        size_hint_x: 1
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "44dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDLabel:
+                                id: lang_badge
+                                text: app.lang_code
+                                font_style: "Caption"
+                                bold: True
+                                theme_text_color: "Custom"
+                                text_color: 0.25, 0.45, 0.9, 1
+                                halign: "center"
+                                adaptive_size: True
+                                pos_hint: {"center_x": .5, "center_y": .5}
 
-                # Protocol
-                MDCard:
-                    size_hint_y: None
-                    height: "60dp"
-                    radius: [16]
-                    md_bg_color: 0.95, 0.95, 0.98, 1
-                    elevation: 2
-                    ripple_behavior: True
-                    padding: [16, 0]
+            # Протокол
+            MDCard:
+                size_hint_y: None
+                height: "60dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                ripple_behavior: True
+                padding: [16, 0, 16, 0]
+                on_release: root.manager.current = 'protocol'
+                MDBoxLayout:
+                    spacing: 14
                     MDBoxLayout:
-                        spacing: 14
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "shield-lock-outline"
-                                    size_hint: None, None
-                                    size: "26dp", "26dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.25, 0.45, 0.9, 1
-                                    font_size: "22sp"
-                        MDLabel:
-                            text: "Протокол"
-                            theme_text_color: "Custom"
-                            text_color: 0.1, 0.1, 0.1, 1
-                            valign: "middle"
-                            size_hint_x: 1
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "chevron-right"
-                                    size_hint: None, None
-                                    size: "22dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.7, 0.7, 0.7, 1
-                                    font_size: "20sp"
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "shield-lock-outline"
+                                size_hint: None, None
+                                size: "26dp", "26dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.25, 0.45, 0.9, 1
+                                font_size: "22sp"
+                    MDLabel:
+                        text: app.lang_protocol
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+                        size_hint_x: 1
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "chevron-right"
+                                size_hint: None, None
+                                size: "22dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.7, 0.7, 0.7, 1
+                                font_size: "20sp"
 
-                # Auto connect
-                MDCard:
-                    size_hint_y: None
-                    height: "60dp"
-                    radius: [16]
-                    md_bg_color: 0.95, 0.95, 0.98, 1
-                    elevation: 2
-                    padding: [16, 0]
+            # Автоподключение
+            MDCard:
+                id: autoconnect_card
+                size_hint_y: None
+                height: "60dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                ripple_behavior: True
+                padding: [16, 0, 16, 0]
+                on_release: root.toggle_autoconnect(self)
+                MDBoxLayout:
+                    spacing: 14
                     MDBoxLayout:
-                        spacing: 14
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "wifi-check"
-                                    size_hint: None, None
-                                    size: "26dp", "26dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.25, 0.45, 0.9, 1
-                                    font_size: "22sp"
-                        MDLabel:
-                            text: "Автоподключение"
-                            theme_text_color: "Custom"
-                            text_color: 0.1, 0.1, 0.1, 1
-                            valign: "middle"
-                            size_hint_x: 1
-                        MDSwitch:
-                            size_hint: None, None
-                            size: "50dp", "30dp"
-                            pos_hint: {"center_y": .5}
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                id: autoconnect_icon
+                                icon: "wifi-check"
+                                size_hint: None, None
+                                size: "26dp", "26dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.25, 0.45, 0.9, 1
+                                font_size: "22sp"
+                    MDLabel:
+                        id: autoconnect_label
+                        text: "Автоподключение"
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+                        size_hint_x: 1
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "32dp", "32dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                id: autoconnect_check
+                                icon: "check-circle-outline"
+                                size_hint: None, None
+                                size: "22dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.75, 0.75, 0.75, 1
+                                font_size: "20sp"
 
-                # Kill switch
-                MDCard:
-                    size_hint_y: None
-                    height: "60dp"
-                    radius: [16]
-                    md_bg_color: 0.95, 0.95, 0.98, 1
-                    elevation: 2
-                    padding: [16, 0]
+            # Kill Switch
+            MDCard:
+                id: killswitch_card
+                size_hint_y: None
+                height: "60dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                ripple_behavior: True
+                padding: [16, 0, 16, 0]
+                on_release: root.toggle_killswitch(self)
+                MDBoxLayout:
+                    spacing: 14
                     MDBoxLayout:
-                        spacing: 14
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "close-network-outline"
-                                    size_hint: None, None
-                                    size: "26dp", "26dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.9, 0.3, 0.3, 1
-                                    font_size: "22sp"
-                        MDLabel:
-                            text: "Kill Switch"
-                            theme_text_color: "Custom"
-                            text_color: 0.1, 0.1, 0.1, 1
-                            valign: "middle"
-                            size_hint_x: 1
-                        MDSwitch:
-                            size_hint: None, None
-                            size: "50dp", "30dp"
-                            pos_hint: {"center_y": .5}
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                id: killswitch_icon
+                                icon: "close-network-outline"
+                                size_hint: None, None
+                                size: "26dp", "26dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.9, 0.3, 0.3, 1
+                                font_size: "22sp"
+                    MDLabel:
+                        id: killswitch_label
+                        text: "Kill Switch"
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+                        size_hint_x: 1
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "32dp", "32dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                id: killswitch_check
+                                icon: "check-circle-outline"
+                                size_hint: None, None
+                                size: "22dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.75, 0.75, 0.75, 1
+                                font_size: "20sp"
 
-                # Subscription
-                MDCard:
-                    size_hint_y: None
-                    height: "60dp"
-                    radius: [16]
-                    md_bg_color: 0.95, 0.95, 0.98, 1
-                    elevation: 2
-                    ripple_behavior: True
-                    padding: [16, 0]
+            # Подписка
+            MDCard:
+                size_hint_y: None
+                height: "60dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                ripple_behavior: True
+                padding: [16, 0, 16, 0]
+                on_release: root.manager.current = 'subscription'
+                MDBoxLayout:
+                    spacing: 14
                     MDBoxLayout:
-                        spacing: 14
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "crown-outline"
-                                    size_hint: None, None
-                                    size: "26dp", "26dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.85, 0.65, 0.1, 1
-                                    font_size: "22sp"
-                        MDLabel:
-                            text: "Подписка"
-                            theme_text_color: "Custom"
-                            text_color: 0.1, 0.1, 0.1, 1
-                            valign: "middle"
-                            size_hint_x: 1
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "chevron-right"
-                                    size_hint: None, None
-                                    size: "22dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.7, 0.7, 0.7, 1
-                                    font_size: "20sp"
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "crown-outline"
+                                size_hint: None, None
+                                size: "26dp", "26dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.85, 0.65, 0.1, 1
+                                font_size: "22sp"
+                    MDLabel:
+                        text: app.lang_subscription
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+                        size_hint_x: 1
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "chevron-right"
+                                size_hint: None, None
+                                size: "22dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.7, 0.7, 0.7, 1
+                                font_size: "20sp"
 
-                # About
-                MDCard:
-                    size_hint_y: None
-                    height: "60dp"
-                    radius: [16]
-                    md_bg_color: 0.95, 0.95, 0.98, 1
-                    elevation: 2
-                    ripple_behavior: True
-                    padding: [16, 0]
-                    on_release: root.manager.current = 'about'
+            # О приложении
+            MDCard:
+                size_hint_y: None
+                height: "60dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                ripple_behavior: True
+                padding: [16, 0, 16, 0]
+                on_release: root.manager.current = 'about'
+                MDBoxLayout:
+                    spacing: 14
                     MDBoxLayout:
-                        spacing: 14
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "information-outline"
-                                    size_hint: None, None
-                                    size: "26dp", "26dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.25, 0.45, 0.9, 1
-                                    font_size: "22sp"
-                        MDLabel:
-                            text: "О приложении"
-                            theme_text_color: "Custom"
-                            text_color: 0.1, 0.1, 0.1, 1
-                            valign: "middle"
-                            size_hint_x: 1
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "chevron-right"
-                                    size_hint: None, None
-                                    size: "22dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.7, 0.7, 0.7, 1
-                                    font_size: "20sp"
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "information-outline"
+                                size_hint: None, None
+                                size: "26dp", "26dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.25, 0.45, 0.9, 1
+                                font_size: "22sp"
+                    MDLabel:
+                        text: "О приложении"
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+                        size_hint_x: 1
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "chevron-right"
+                                size_hint: None, None
+                                size: "22dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.7, 0.7, 0.7, 1
+                                font_size: "20sp"
 
         Widget:
 
@@ -822,192 +860,189 @@ WindowManager:
             size_hint_y: None
             height: "20dp"
 
-        NeomorphButton:
-            ripple_behavior: False
-            MDLabel:
-                text: "Доступные серверы"
-                bold: True
-                font_style: "H6"
-                theme_text_color: "Custom"
-                text_color: 0.1, 0.1, 0.1, 1
-                halign: "center"
-                valign: "middle"
-                size_hint: 1, 1
+        MDLabel:
+            text: "Доступные серверы"
+            bold: True
+            font_style: "H6"
+            theme_text_color: "Custom"
+            text_color: 0.1, 0.1, 0.1, 1
+            halign: "center"
+            size_hint_y: None
+            height: "40dp"
 
         Widget:
             size_hint_y: None
             height: "20dp"
 
-        ScrollView:
-            MDList:
-                id: server_list
-                spacing: "10dp"
-                padding: [0, 0, 0, 10]
+        MDBoxLayout:
+            orientation: 'vertical'
+            spacing: "10dp"
+            size_hint_y: None
+            height: self.minimum_height
 
-                MDCard:
-                    size_hint_y: None
-                    height: "60dp"
-                    radius: [16]
-                    md_bg_color: 0.95, 0.95, 0.98, 1
-                    elevation: 2
-                    ripple_behavior: True
-                    padding: [16, 0]
-                    on_release: app.root.get_screen('servers').select_server("Нидерланды")
+            MDCard:
+                size_hint_y: None
+                height: "60dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                ripple_behavior: True
+                padding: [16, 0]
+                on_release: app.root.get_screen('servers').select_server("Нидерланды")
+                MDBoxLayout:
+                    spacing: 14
                     MDBoxLayout:
-                        spacing: 14
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                Image:
-                                    source: "images/flag_nl.png"
-                                    size_hint: None, None
-                                    size: "30dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                        MDLabel:
-                            text: "Нидерланды"
-                            theme_text_color: "Custom"
-                            text_color: 0.1, 0.1, 0.1, 1
-                            valign: "middle"
-                            size_hint_x: 1
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "chevron-right"
-                                    size_hint: None, None
-                                    size: "22dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.7, 0.7, 0.7, 1
-                                    font_size: "20sp"
-
-                MDCard:
-                    size_hint_y: None
-                    height: "60dp"
-                    radius: [16]
-                    md_bg_color: 0.95, 0.95, 0.98, 1
-                    elevation: 2
-                    ripple_behavior: True
-                    padding: [16, 0]
-                    on_release: app.root.get_screen('servers').select_server("США")
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            Image:
+                                source: "images/flag_nl.png"
+                                size_hint: None, None
+                                size: "30dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                    MDLabel:
+                        text: "Нидерланды"
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+                        size_hint_x: 1
                     MDBoxLayout:
-                        spacing: 14
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                Image:
-                                    source: "images/flag_us.png"
-                                    size_hint: None, None
-                                    size: "30dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                        MDLabel:
-                            text: "США"
-                            theme_text_color: "Custom"
-                            text_color: 0.1, 0.1, 0.1, 1
-                            valign: "middle"
-                            size_hint_x: 1
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "chevron-right"
-                                    size_hint: None, None
-                                    size: "22dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.7, 0.7, 0.7, 1
-                                    font_size: "20sp"
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "chevron-right"
+                                size_hint: None, None
+                                size: "22dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.7, 0.7, 0.7, 1
+                                font_size: "20sp"
 
-                MDCard:
-                    size_hint_y: None
-                    height: "60dp"
-                    radius: [16]
-                    md_bg_color: 0.95, 0.95, 0.98, 1
-                    elevation: 2
-                    ripple_behavior: True
-                    padding: [16, 0]
-                    on_release: app.root.get_screen('servers').select_server("Япония")
+            MDCard:
+                size_hint_y: None
+                height: "60dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                ripple_behavior: True
+                padding: [16, 0]
+                on_release: app.root.get_screen('servers').select_server("США")
+                MDBoxLayout:
+                    spacing: 14
                     MDBoxLayout:
-                        spacing: 14
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                Image:
-                                    source: "images/flag_jp.png"
-                                    size_hint: None, None
-                                    size: "30dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                        MDLabel:
-                            text: "Япония"
-                            theme_text_color: "Custom"
-                            text_color: 0.1, 0.1, 0.1, 1
-                            valign: "middle"
-                            size_hint_x: 1
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "chevron-right"
-                                    size_hint: None, None
-                                    size: "22dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.7, 0.7, 0.7, 1
-                                    font_size: "20sp"
-
-                MDCard:
-                    size_hint_y: None
-                    height: "60dp"
-                    radius: [16]
-                    md_bg_color: 0.95, 0.95, 0.98, 1
-                    elevation: 2
-                    ripple_behavior: True
-                    padding: [16, 0]
-                    on_release: app.root.get_screen('servers').select_server("Германия")
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            Image:
+                                source: "images/flag_us.png"
+                                size_hint: None, None
+                                size: "30dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                    MDLabel:
+                        text: "США"
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+                        size_hint_x: 1
                     MDBoxLayout:
-                        spacing: 14
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                Image:
-                                    source: "images/flag_de.png"
-                                    size_hint: None, None
-                                    size: "30dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                        MDLabel:
-                            text: "Германия"
-                            theme_text_color: "Custom"
-                            text_color: 0.1, 0.1, 0.1, 1
-                            valign: "middle"
-                            size_hint_x: 1
-                        MDBoxLayout:
-                            size_hint: None, None
-                            size: "38dp", "38dp"
-                            pos_hint: {"center_y": .5}
-                            AnchorLayout:
-                                MDIcon:
-                                    icon: "chevron-right"
-                                    size_hint: None, None
-                                    size: "22dp", "22dp"
-                                    pos_hint: {"center_x": .5, "center_y": .5}
-                                    theme_text_color: "Custom"
-                                    text_color: 0.7, 0.7, 0.7, 1
-                                    font_size: "20sp"
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "chevron-right"
+                                size_hint: None, None
+                                size: "22dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.7, 0.7, 0.7, 1
+                                font_size: "20sp"
 
+            MDCard:
+                size_hint_y: None
+                height: "60dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                ripple_behavior: True
+                padding: [16, 0]
+                on_release: app.root.get_screen('servers').select_server("Япония")
+                MDBoxLayout:
+                    spacing: 14
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            Image:
+                                source: "images/flag_jp.png"
+                                size_hint: None, None
+                                size: "30dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                    MDLabel:
+                        text: "Япония"
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+                        size_hint_x: 1
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "chevron-right"
+                                size_hint: None, None
+                                size: "22dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.7, 0.7, 0.7, 1
+                                font_size: "20sp"
+
+            MDCard:
+                size_hint_y: None
+                height: "60dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                ripple_behavior: True
+                padding: [16, 0]
+                on_release: app.root.get_screen('servers').select_server("Германия")
+                MDBoxLayout:
+                    spacing: 14
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            Image:
+                                source: "images/flag_de.png"
+                                size_hint: None, None
+                                size: "30dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                    MDLabel:
+                        text: "Германия"
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+                        size_hint_x: 1
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "chevron-right"
+                                size_hint: None, None
+                                size: "22dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.7, 0.7, 0.7, 1
+                                font_size: "20sp"
         Widget:
 
 # ─── ABOUT SCREEN ───────────────────────────────────────────────────
@@ -1114,6 +1149,535 @@ WindowManager:
                 text_color: 0.4, 0.4, 0.4, 1
 
         Widget:
+
+# ─── PROTOCOL SCREEN ────────────────────────────────────────────────
+<ProtocolScreen>:
+    name: 'protocol'
+
+    MDBoxLayout:
+        orientation: 'vertical'
+        md_bg_color: 1, 1, 1, 1
+        padding: [20, 14, 20, 20]
+        spacing: 0
+
+        # Top bar
+        MDBoxLayout:
+            size_hint_y: None
+            height: "48dp"
+
+            MDBoxLayout:
+                size_hint_x: None
+                width: "48dp"
+                AnchorLayout:
+                    anchor_x: "center"
+                    anchor_y: "center"
+                    MDIconButton:
+                        icon: "arrow-left"
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        on_release: root.manager.current = 'settings'
+
+            AnchorLayout:
+                anchor_x: "center"
+                anchor_y: "center"
+                MDLabel:
+                    text: app.lang_protocol
+                    bold: True
+                    halign: "center"
+                    font_style: "H6"
+                    theme_text_color: "Custom"
+                    text_color: 0.1, 0.1, 0.1, 1
+                    adaptive_size: True
+
+            Widget:
+                size_hint_x: None
+                width: "48dp"
+
+        Widget:
+            size_hint_y: None
+            height: "24dp"
+
+        # Иконка щита
+        AnchorLayout:
+            size_hint_y: None
+            height: "110dp"
+            MDCard:
+                size_hint: None, None
+                size: "88dp", "88dp"
+                radius: [28]
+                md_bg_color: 0.2, 0.4, 0.9, 1
+                elevation: 6
+                AnchorLayout:
+                    MDIcon:
+                        icon: "shield-lock"
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        pos_hint: {"center_x": .5, "center_y": .5}
+                        theme_text_color: "Custom"
+                        text_color: 1, 1, 1, 1
+                        font_size: "44sp"
+
+        Widget:
+            size_hint_y: None
+            height: "10dp"
+
+        MDLabel:
+            text: "OpenVPN"
+            halign: "center"
+            font_style: "H5"
+            bold: True
+            theme_text_color: "Custom"
+            text_color: 0.1, 0.1, 0.1, 1
+            size_hint_y: None
+            height: "40dp"
+
+        MDLabel:
+            text: app.lang_protocol_sub
+            halign: "center"
+            font_style: "Caption"
+            theme_text_color: "Custom"
+            text_color: 0.55, 0.55, 0.65, 1
+            size_hint_y: None
+            height: "22dp"
+
+        Widget:
+            size_hint_y: None
+            height: "20dp"
+
+        # Карточки с фактами
+        MDBoxLayout:
+            orientation: 'vertical'
+            spacing: "10dp"
+            size_hint_y: None
+            height: self.minimum_height
+
+            MDCard:
+                size_hint_y: None
+                height: "64dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                padding: [16, 0]
+                MDBoxLayout:
+                    spacing: 14
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "lock"
+                                size_hint: None, None
+                                size: "24dp", "24dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.2, 0.4, 0.9, 1
+                                font_size: "22sp"
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        size_hint_x: 1
+                        spacing: 2
+                        MDLabel:
+                            text: app.lang_proto_enc
+                            bold: True
+                            theme_text_color: "Custom"
+                            text_color: 0.1, 0.1, 0.1, 1
+                            adaptive_size: True
+                        MDLabel:
+                            text: "AES-256-GCM"
+                            font_style: "Caption"
+                            theme_text_color: "Custom"
+                            text_color: 0.5, 0.5, 0.6, 1
+                            adaptive_size: True
+
+            MDCard:
+                size_hint_y: None
+                height: "64dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                padding: [16, 0]
+                MDBoxLayout:
+                    spacing: 14
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "key-variant"
+                                size_hint: None, None
+                                size: "24dp", "24dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.2, 0.4, 0.9, 1
+                                font_size: "22sp"
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        size_hint_x: 1
+                        spacing: 2
+                        MDLabel:
+                            text: app.lang_proto_auth
+                            bold: True
+                            theme_text_color: "Custom"
+                            text_color: 0.1, 0.1, 0.1, 1
+                            adaptive_size: True
+                        MDLabel:
+                            text: "TLS 1.3 + RSA-2048"
+                            font_style: "Caption"
+                            theme_text_color: "Custom"
+                            text_color: 0.5, 0.5, 0.6, 1
+                            adaptive_size: True
+
+            MDCard:
+                size_hint_y: None
+                height: "64dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                padding: [16, 0]
+                MDBoxLayout:
+                    spacing: 14
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "eye-off-outline"
+                                size_hint: None, None
+                                size: "24dp", "24dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.2, 0.4, 0.9, 1
+                                font_size: "22sp"
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        size_hint_x: 1
+                        spacing: 2
+                        MDLabel:
+                            text: app.lang_proto_anon
+                            bold: True
+                            theme_text_color: "Custom"
+                            text_color: 0.1, 0.1, 0.1, 1
+                            adaptive_size: True
+                        MDLabel:
+                            text: app.lang_proto_anon_sub
+                            font_style: "Caption"
+                            theme_text_color: "Custom"
+                            text_color: 0.5, 0.5, 0.6, 1
+                            adaptive_size: True
+
+            MDCard:
+                size_hint_y: None
+                height: "64dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                padding: [16, 0]
+                MDBoxLayout:
+                    spacing: 14
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "access-point"
+                                size_hint: None, None
+                                size: "24dp", "24dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.2, 0.4, 0.9, 1
+                                font_size: "22sp"
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        size_hint_x: 1
+                        spacing: 2
+                        MDLabel:
+                            text: app.lang_proto_port
+                            bold: True
+                            theme_text_color: "Custom"
+                            text_color: 0.1, 0.1, 0.1, 1
+                            adaptive_size: True
+                        MDLabel:
+                            text: "UDP 1194 / TCP 443"
+                            font_style: "Caption"
+                            theme_text_color: "Custom"
+                            text_color: 0.5, 0.5, 0.6, 1
+                            adaptive_size: True
+
+        Widget:
+
+# ─── SUBSCRIPTION SCREEN ────────────────────────────────────────────
+<SubscriptionScreen>:
+    name: 'subscription'
+
+    MDBoxLayout:
+        orientation: 'vertical'
+        md_bg_color: 1, 1, 1, 1
+        padding: [20, 14, 20, 20]
+        spacing: 0
+
+        # Top bar
+        MDBoxLayout:
+            size_hint_y: None
+            height: "48dp"
+
+            MDBoxLayout:
+                size_hint_x: None
+                width: "48dp"
+                AnchorLayout:
+                    anchor_x: "center"
+                    anchor_y: "center"
+                    MDIconButton:
+                        icon: "arrow-left"
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        on_release: root.manager.current = 'settings'
+
+            AnchorLayout:
+                anchor_x: "center"
+                anchor_y: "center"
+                MDLabel:
+                    text: app.lang_subscription
+                    bold: True
+                    halign: "center"
+                    font_style: "H6"
+                    theme_text_color: "Custom"
+                    text_color: 0.1, 0.1, 0.1, 1
+                    adaptive_size: True
+
+            Widget:
+                size_hint_x: None
+                width: "48dp"
+
+        Widget:
+            size_hint_y: None
+            height: "20dp"
+
+        # Корона
+        AnchorLayout:
+            size_hint_y: None
+            height: "100dp"
+            MDCard:
+                size_hint: None, None
+                size: "80dp", "80dp"
+                radius: [24]
+                md_bg_color: 0.98, 0.93, 0.72, 1
+                elevation: 5
+                AnchorLayout:
+                    MDIcon:
+                        icon: "crown"
+                        size_hint: None, None
+                        size: "44dp", "44dp"
+                        pos_hint: {"center_x": .5, "center_y": .5}
+                        theme_text_color: "Custom"
+                        text_color: 0.85, 0.58, 0.05, 1
+                        font_size: "40sp"
+
+        Widget:
+            size_hint_y: None
+            height: "8dp"
+
+        MDLabel:
+            text: "NEVPN Premium"
+            halign: "center"
+            font_style: "H5"
+            bold: True
+            theme_text_color: "Custom"
+            text_color: 0.1, 0.1, 0.1, 1
+            size_hint_y: None
+            height: "38dp"
+
+        MDLabel:
+            text: app.lang_sub_desc
+            halign: "center"
+            font_style: "Caption"
+            theme_text_color: "Custom"
+            text_color: 0.55, 0.55, 0.65, 1
+            size_hint_y: None
+            height: "22dp"
+
+        Widget:
+            size_hint_y: None
+            height: "18dp"
+
+        # Карточка тарифа
+        MDCard:
+            size_hint_y: None
+            height: "100dp"
+            radius: [20]
+            md_bg_color: 0.95, 0.95, 0.98, 1
+            elevation: 3
+            padding: [20, 0]
+            MDBoxLayout:
+                spacing: 12
+                AnchorLayout:
+                    size_hint: None, None
+                    size: "48dp", "48dp"
+                    pos_hint: {"center_y": .5}
+                    MDCard:
+                        size_hint: None, None
+                        size: "48dp", "48dp"
+                        radius: [14]
+                        md_bg_color: 0.2, 0.4, 0.9, 1
+                        elevation: 2
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "calendar-month"
+                                size_hint: None, None
+                                size: "26dp", "26dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 1, 1, 1, 1
+                                font_size: "24sp"
+                MDBoxLayout:
+                    orientation: "vertical"
+                    size_hint_x: 1
+                    spacing: 4
+                    MDLabel:
+                        text: app.lang_sub_plan
+                        bold: True
+                        font_style: "Subtitle1"
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        adaptive_size: True
+                    MDLabel:
+                        text: app.lang_sub_features
+                        font_style: "Caption"
+                        theme_text_color: "Custom"
+                        text_color: 0.5, 0.5, 0.6, 1
+                        adaptive_size: True
+                MDBoxLayout:
+                    orientation: "vertical"
+                    size_hint: None, None
+                    size: "70dp", "60dp"
+                    pos_hint: {"center_y": .5}
+                    spacing: 0
+                    MDLabel:
+                        text: "500 ₽"
+                        bold: True
+                        font_style: "H6"
+                        theme_text_color: "Custom"
+                        text_color: 0.2, 0.4, 0.9, 1
+                        halign: "right"
+                        size_hint_y: None
+                        height: "36dp"
+                    MDLabel:
+                        text: app.lang_sub_period
+                        font_style: "Caption"
+                        theme_text_color: "Custom"
+                        text_color: 0.6, 0.6, 0.7, 1
+                        halign: "right"
+                        size_hint_y: None
+                        height: "18dp"
+
+        Widget:
+            size_hint_y: None
+            height: "14dp"
+
+        # Что включено
+        MDBoxLayout:
+            orientation: 'vertical'
+            spacing: "8dp"
+            size_hint_y: None
+            height: self.minimum_height
+
+            MDCard:
+                size_hint_y: None
+                height: "44dp"
+                radius: [12]
+                md_bg_color: 0.93, 0.98, 0.93, 1
+                elevation: 0
+                padding: [14, 0]
+                MDBoxLayout:
+                    spacing: 10
+                    MDIcon:
+                        icon: "check-circle"
+                        size_hint: None, None
+                        size: "20dp", "20dp"
+                        pos_hint: {"center_y": .5}
+                        theme_text_color: "Custom"
+                        text_color: 0.15, 0.72, 0.35, 1
+                        font_size: "18sp"
+                    MDLabel:
+                        text: app.lang_sub_f1
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+
+            MDCard:
+                size_hint_y: None
+                height: "44dp"
+                radius: [12]
+                md_bg_color: 0.93, 0.98, 0.93, 1
+                elevation: 0
+                padding: [14, 0]
+                MDBoxLayout:
+                    spacing: 10
+                    MDIcon:
+                        icon: "check-circle"
+                        size_hint: None, None
+                        size: "20dp", "20dp"
+                        pos_hint: {"center_y": .5}
+                        theme_text_color: "Custom"
+                        text_color: 0.15, 0.72, 0.35, 1
+                        font_size: "18sp"
+                    MDLabel:
+                        text: app.lang_sub_f2
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+
+            MDCard:
+                size_hint_y: None
+                height: "44dp"
+                radius: [12]
+                md_bg_color: 0.93, 0.98, 0.93, 1
+                elevation: 0
+                padding: [14, 0]
+                MDBoxLayout:
+                    spacing: 10
+                    MDIcon:
+                        icon: "check-circle"
+                        size_hint: None, None
+                        size: "20dp", "20dp"
+                        pos_hint: {"center_y": .5}
+                        theme_text_color: "Custom"
+                        text_color: 0.15, 0.72, 0.35, 1
+                        font_size: "18sp"
+                    MDLabel:
+                        text: app.lang_sub_f3
+                        theme_text_color: "Custom"
+                        text_color: 0.1, 0.1, 0.1, 1
+                        valign: "middle"
+
+        Widget:
+            size_hint_y: None
+            height: "18dp"
+
+        # Кнопка купить
+        MDCard:
+            size_hint_y: None
+            height: "52dp"
+            radius: [26]
+            md_bg_color: 0.2, 0.4, 0.9, 1
+            elevation: 5
+            ripple_behavior: True
+            on_release: print("[Sub] Купить нажато")
+            AnchorLayout:
+                MDLabel:
+                    text: app.lang_buy
+                    bold: True
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+                    font_style: "Button"
+                    adaptive_size: True
+                    pos_hint: {"center_x": .5, "center_y": .5}
+
+        Widget:
 '''
 
 
@@ -1170,7 +1734,42 @@ class MainScreen(Screen):
 
 
 class SettingsScreen(Screen):
-    pass
+    _autoconnect_on = False
+    _killswitch_on = False
+
+    def toggle_autoconnect(self, instance):
+        from kivy.animation import Animation
+        self._autoconnect_on = not self._autoconnect_on
+        if self._autoconnect_on:
+            anim = Animation(md_bg_color=(0.78, 0.96, 0.82, 1), duration=0.25)
+            self.ids.autoconnect_icon.text_color = (0.15, 0.65, 0.3, 1)
+            self.ids.autoconnect_label.text_color = (0.05, 0.45, 0.15, 1)
+            self.ids.autoconnect_check.icon = "check-circle"
+            self.ids.autoconnect_check.text_color = (0.15, 0.72, 0.35, 1)
+        else:
+            anim = Animation(md_bg_color=(0.95, 0.95, 0.98, 1), duration=0.25)
+            self.ids.autoconnect_icon.text_color = (0.25, 0.45, 0.9, 1)
+            self.ids.autoconnect_label.text_color = (0.1, 0.1, 0.1, 1)
+            self.ids.autoconnect_check.icon = "check-circle-outline"
+            self.ids.autoconnect_check.text_color = (0.75, 0.75, 0.75, 1)
+        anim.start(instance)
+
+    def toggle_killswitch(self, instance):
+        from kivy.animation import Animation
+        self._killswitch_on = not self._killswitch_on
+        if self._killswitch_on:
+            anim = Animation(md_bg_color=(0.78, 0.96, 0.82, 1), duration=0.25)
+            self.ids.killswitch_icon.text_color = (0.15, 0.65, 0.3, 1)
+            self.ids.killswitch_label.text_color = (0.05, 0.45, 0.15, 1)
+            self.ids.killswitch_check.icon = "check-circle"
+            self.ids.killswitch_check.text_color = (0.15, 0.72, 0.35, 1)
+        else:
+            anim = Animation(md_bg_color=(0.95, 0.95, 0.98, 1), duration=0.25)
+            self.ids.killswitch_icon.text_color = (0.9, 0.3, 0.3, 1)
+            self.ids.killswitch_label.text_color = (0.1, 0.1, 0.1, 1)
+            self.ids.killswitch_check.icon = "check-circle-outline"
+            self.ids.killswitch_check.text_color = (0.75, 0.75, 0.75, 1)
+        anim.start(instance)
 
 
 class ServersScreen(Screen):
@@ -1181,6 +1780,14 @@ class ServersScreen(Screen):
         self.manager.current = 'main'
 
 
+class ProtocolScreen(Screen):
+    pass
+
+
+class SubscriptionScreen(Screen):
+    pass
+
+
 class AboutScreen(Screen):
     pass
 
@@ -1189,7 +1796,114 @@ class WindowManager(ScreenManager):
     pass
 
 
+# ══ Словари переводов ══════════════════════════════════════════
+TRANSLATIONS = {
+    'ru': {
+        'connect':         'Connect',
+        'connected':       'Подключено',
+        'settings':        'Настройки',
+        'lang_settings':   'Язык',
+        'lang_code':       'RU',
+        'protocol':        'Протокол',
+        'protocol_sub':    'Открытый стандарт · надёжный и быстрый',
+        'subscription':    'Подписка',
+        'sub_desc':        'Разблокируй все возможности NEVPN',
+        'sub_plan':        'Premium · 1 месяц',
+        'sub_features':    'Все серверы · Kill Switch · без рекламы',
+        'sub_period':      '/ месяц',
+        'sub_f1':          'Доступ ко всем серверам',
+        'sub_f2':          'Kill Switch — защита при обрыве',
+        'sub_f3':          'Без рекламы и ограничений',
+        'buy':             'Купить — 500 ₽',
+        'proto_enc':       'Шифрование',
+        'proto_auth':      'Аутентификация',
+        'proto_anon':      'Анонимность',
+        'proto_anon_sub':  'Нет логов · нет утечек DNS',
+        'proto_port':      'Порты',
+    },
+    'en': {
+        'connect':         'Connect',
+        'connected':       'Connected',
+        'settings':        'Settings',
+        'lang_settings':   'Language',
+        'lang_code':       'EN',
+        'protocol':        'Protocol',
+        'protocol_sub':    'Open standard · reliable and fast',
+        'subscription':    'Subscription',
+        'sub_desc':        'Unlock all NEVPN features',
+        'sub_plan':        'Premium · 1 month',
+        'sub_features':    'All servers · Kill Switch · no ads',
+        'sub_period':      '/ month',
+        'sub_f1':          'Access to all servers',
+        'sub_f2':          'Kill Switch — protection on disconnect',
+        'sub_f3':          'No ads or limits',
+        'buy':             'Buy — 500 ₽',
+        'proto_enc':       'Encryption',
+        'proto_auth':      'Authentication',
+        'proto_anon':      'Anonymity',
+        'proto_anon_sub':  'No logs · no DNS leaks',
+        'proto_port':      'Ports',
+    },
+}
+
+
 class NEVPNApp(MDApp):
+    lang_code        = StringProperty('RU')
+    lang_connect     = StringProperty('Connect')
+    lang_connected   = StringProperty('Подключено')
+    lang_settings    = StringProperty('Язык')
+    lang_protocol    = StringProperty('Протокол')
+    lang_protocol_sub = StringProperty('Открытый стандарт · надёжный и быстрый')
+    lang_subscription = StringProperty('Подписка')
+    lang_sub_desc    = StringProperty('Разблокируй все возможности NEVPN')
+    lang_sub_plan    = StringProperty('Premium · 1 месяц')
+    lang_sub_features = StringProperty('Все серверы · Kill Switch · без рекламы')
+    lang_sub_period  = StringProperty('/ месяц')
+    lang_sub_f1      = StringProperty('Доступ ко всем серверам')
+    lang_sub_f2      = StringProperty('Kill Switch — защита при обрыве')
+    lang_sub_f3      = StringProperty('Без рекламы и ограничений')
+    lang_buy         = StringProperty('Купить — 500 ₽')
+    lang_proto_enc   = StringProperty('Шифрование')
+    lang_proto_auth  = StringProperty('Аутентификация')
+    lang_proto_anon  = StringProperty('Анонимность')
+    lang_proto_anon_sub = StringProperty('Нет логов · нет утечек DNS')
+    lang_proto_port  = StringProperty('Порты')
+
+    _current_lang = 'ru'
+
+    def toggle_language(self):
+        self._current_lang = 'en' if self._current_lang == 'ru' else 'ru'
+        t = TRANSLATIONS[self._current_lang]
+        self.lang_code         = t['lang_code']
+        self.lang_settings     = t['lang_settings']
+        self.lang_connect      = t['connect']
+        self.lang_connected    = t['connected']
+        self.lang_protocol     = t['protocol']
+        self.lang_protocol_sub = t['protocol_sub']
+        self.lang_subscription = t['subscription']
+        self.lang_sub_desc     = t['sub_desc']
+        self.lang_sub_plan     = t['sub_plan']
+        self.lang_sub_features = t['sub_features']
+        self.lang_sub_period   = t['sub_period']
+        self.lang_sub_f1       = t['sub_f1']
+        self.lang_sub_f2       = t['sub_f2']
+        self.lang_sub_f3       = t['sub_f3']
+        self.lang_buy          = t['buy']
+        self.lang_proto_enc    = t['proto_enc']
+        self.lang_proto_auth   = t['proto_auth']
+        self.lang_proto_anon   = t['proto_anon']
+        self.lang_proto_anon_sub = t['proto_anon_sub']
+        self.lang_proto_port   = t['proto_port']
+        # обновить статус на главном экране
+        try:
+            ms = self.root.get_screen('main')
+            if ms.is_connected:
+                ms.ids.status_label.text = t['connected']
+            else:
+                ms.ids.status_label.text = t['connect']
+        except Exception:
+            pass
+
     def build(self):
         try:
             self.theme_cls.theme_style = "Light"
