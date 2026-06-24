@@ -1766,59 +1766,52 @@ class MainScreen(Screen):
 
     def _launch_openvpn_android(self, ovpn_path, server_name):
         """
-        Передаёт .ovpn конфиг в OpenVPN for Android через Intent extras.
-        Это официальный API ics-openvpn — не требует FileProvider.
+        Передаёт .ovpn файл в ics-openvpn (de.blinkt.openvpn).
+
+        ВАЖНО: "de.blinkt.openvpn.action.START_VPN" / "IMPORT_PROFILE" и экстра
+        "net.openvpn.openvpn.OVPNPROFILE" — НЕ существуют в реальном ics-openvpn,
+        поэтому startActivity всегда падал с ActivityNotFoundException и код
+        проваливался в _prompt_install_openvpn(), даже если ics-openvpn уже стоит.
+
+        Реальный задокументированный способ передать файл — отдать его через
+        FileProvider как content:// URI с ACTION_VIEW и MIME-типом
+        "application/x-openvpn-profile". Это открывает экран импорта ics-openvpn:
+        пользователь жмёт «Импорт», затем «Подключиться» — это нормальное,
+        ожидаемое поведение (ics-openvpn не подключается к непроверенному
+        конфигу без подтверждения пользователя).
         """
         try:
-            # Читаем .ovpn файл который уже сохранили
-            with open(ovpn_path, "r", encoding="utf-8") as f:
-                ovpn_config = f.read()
-
             from jnius import autoclass
-            Intent         = autoclass("android.content.Intent")
-            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+
+            Intent          = autoclass("android.content.Intent")
+            PythonActivity  = autoclass("org.kivy.android.PythonActivity")
+            JavaFile        = autoclass("java.io.File")
+            FileProviderCls = autoclass("androidx.core.content.FileProvider")
 
             ctx = PythonActivity.mActivity
+            java_file = JavaFile(ovpn_path)
 
-            # Официальный Intent API ics-openvpn:
-            # https://github.com/schwabe/ics-openvpn/blob/master/main/src/main/java/de/blinkt/openvpn/api/
-            intent = Intent("de.blinkt.openvpn.action.START_VPN")
+            # ВАЖНО: эта строка должна СИМВОЛ-В-СИМВОЛ совпадать с
+            # android:authorities в android/extra_manifest_application_arguments.xml
+            authority = "org.nevpn.fileprovider"
+            uri = FileProviderCls.getUriForFile(ctx, authority, java_file)
+
+            intent = Intent(Intent.ACTION_VIEW)
+            intent.setDataAndType(uri, "application/x-openvpn-profile")
             intent.setPackage("de.blinkt.openvpn")
-            intent.putExtra("de.blinkt.openvpn.extra.PROFILEUUID", "")
-            intent.putExtra("net.openvpn.openvpn.OVPNPROFILE", ovpn_config)
-            intent.putExtra("de.blinkt.openvpn.extra.NAME", server_name)
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
             ctx.startActivity(intent)
-            print(f"[VPN] START_VPN Intent отправлен: {server_name}")
+            print(f"[VPN] .ovpn отправлен в ics-openvpn на импорт: {server_name}")
             Clock.schedule_once(lambda dt: self._on_connecting_intent_sent(), 0.5)
 
-        except Exception as e1:
-            print(f"[VPN] START_VPN failed: {e1}, пробуем импорт профиля...")
-            # Фолбэк: передаём конфиг как строку через IMPORT_PROFILE
-            try:
-                with open(ovpn_path, "r", encoding="utf-8") as f:
-                    ovpn_config = f.read()
-
-                from jnius import autoclass
-                Intent         = autoclass("android.content.Intent")
-                PythonActivity = autoclass("org.kivy.android.PythonActivity")
-                ctx = PythonActivity.mActivity
-
-                intent2 = Intent("de.blinkt.openvpn.action.IMPORT_PROFILE")
-                intent2.setPackage("de.blinkt.openvpn")
-                intent2.putExtra("net.openvpn.openvpn.OVPNPROFILE", ovpn_config)
-                intent2.putExtra("de.blinkt.openvpn.extra.NAME", server_name)
-                intent2.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-                ctx.startActivity(intent2)
-                print(f"[VPN] IMPORT_PROFILE отправлен: {server_name}")
-                Clock.schedule_once(lambda dt: self._on_connecting_intent_sent(), 0.5)
-
-            except Exception as e2:
-                write_crash_log(type(e2), e2, e2.__traceback__)
-                print(f"[VPN] Все методы не сработали: {e2}")
-                Clock.schedule_once(lambda dt: self._prompt_install_openvpn(), 0)
+        except Exception as e:
+            write_crash_log(type(e), e, e.__traceback__)
+            print(f"[VPN] Не удалось передать файл в ics-openvpn: {e}")
+            # Либо ics-openvpn не установлен, либо FileProvider не настроен —
+            # в обоих случаях лучше явно показать пользователю, что делать.
+            Clock.schedule_once(lambda dt: self._prompt_install_openvpn(), 0)
 
     def _prompt_install_openvpn(self):
         """Открывает F-Droid / Play страницу ics-openvpn для установки."""
@@ -1853,7 +1846,7 @@ class MainScreen(Screen):
             pass
 
     def _disconnect_vpn(self):
-        """Отключение: посылает STOP Intent в ics-openvpn."""
+        """Отключение через документированный Simple Intent API ics-openvpn."""
         if platform == "android":
             try:
                 from jnius import autoclass
@@ -1861,8 +1854,10 @@ class MainScreen(Screen):
                 PythonActivity = autoclass("org.kivy.android.PythonActivity")
                 ctx = PythonActivity.mActivity
 
-                intent = Intent("de.blinkt.openvpn.DISCONNECT_VPN")
-                intent.setPackage("de.blinkt.openvpn")
+                # Реальный API: activity de.blinkt.openvpn.api.DisconnectVPN,
+                # запускается через ACTION_MAIN (а не кастомный broadcast-action).
+                intent = Intent(Intent.ACTION_MAIN)
+                intent.setClassName("de.blinkt.openvpn", "de.blinkt.openvpn.api.DisconnectVPN")
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 ctx.startActivity(intent)
             except Exception as e:

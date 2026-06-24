@@ -24,8 +24,14 @@ icon.filename = images/logo_icon.png
 # READ_EXTERNAL_STORAGE — для доступа к .ovpn на Android < 10 (SAF не требует его на 10+)
 android.permissions = INTERNET,QUERY_ALL_PACKAGES,READ_EXTERNAL_STORAGE
 
-# FileProvider для передачи .ovpn файла в ics-openvpn (Android 7+)
-android.manifest.placeholders = applicationId:org.nevpn
+# FileProvider — нужен чтобы передать .ovpn файл в ics-openvpn как content:// URI.
+# ВАЖНО: "android.add_providers" — это НЕ настоящая опция buildozer (запрос на
+# такую фичу есть в issue-трекере p4a, но в текущем buildozer/p4a она не
+# реализована и просто игнорируется при сборке — провайдер в манифест не
+# попадал, поэтому FileProvider не работал). Ниже — реально существующие
+# опции buildozer, которые делают то же самое:
+android.add_resources = android/file_paths.xml:xml/file_paths.xml
+android.extra_manifest_application_arguments = android/extra_manifest_application_arguments.xml
 
 android.minapi = 26
 android.api = 33
@@ -35,8 +41,8 @@ android.archs = arm64-v8a
 android.allow_backup = False
 android.enable_androidx = True
 
-# FileProvider — добавляем в AndroidManifest через p4a хук
-android.add_providers = org.nevpn.NevpnFileProvider:androidx.core.content.FileProvider
+# Если сборка упадёт на "FileProvider class not found" — раскомментируйте:
+# android.gradle_dependencies = androidx.core:core:1.12.0
 
 android.logcat_filters = *:S python:D
 
