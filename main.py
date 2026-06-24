@@ -1937,11 +1937,9 @@ class ServersScreen(Screen):
             with urllib.request.urlopen(req, timeout=15) as resp:
                 raw = resp.read().decode("utf-8", errors="ignore")
         except Exception as e:
+            msg = f"❌  Ошибка сети: {e}\nПроверьте интернет"
             Clock.schedule_once(
-                lambda dt: self._set_status(
-                    f"❌  Ошибка сети: {e}\nПроверьте интернет-соединение",
-                    (0.8, 0.2, 0.2, 1)
-                ), 0
+                lambda dt, m=msg: self._set_status(m, (0.8, 0.2, 0.2, 1)), 0
             )
             self._loading = False
             return
@@ -1949,8 +1947,9 @@ class ServersScreen(Screen):
         try:
             servers = self._parse_vpngate_csv(raw)
         except Exception as e:
+            msg = f"❌  Ошибка парсинга: {e}"
             Clock.schedule_once(
-                lambda dt: self._set_status(f"❌  Ошибка парсинга: {e}", (0.8, 0.2, 0.2, 1)), 0
+                lambda dt, m=msg: self._set_status(m, (0.8, 0.2, 0.2, 1)), 0
             )
             self._loading = False
             return
