@@ -1685,50 +1685,56 @@ class MainScreen(Screen):
 
     def _launch_openvpn_android(self, ovpn_path, server_name):
         """
-        Запускает ics-openvpn (пакет de.blinkt.openvpn) через Android Intent.
-        ics-openvpn должен быть установлен отдельно.
-        Скачать: https://f-droid.org/packages/de.blinkt.openvpn/
+        Запускает ics-openvpn через Android Intent.
+        Пакет: de.blinkt.openvpn (F-Droid: OpenVPN for Android)
         """
         try:
-            from jnius import autoclass, cast
-            from android import activity  # type: ignore
-
-            Intent          = autoclass("android.content.Intent")
-            Uri             = autoclass("android.net.Uri")
-            PythonActivity  = autoclass("org.kivy.android.PythonActivity")
-            File            = autoclass("java.io.File")
-            FileProvider    = autoclass("androidx.core.content.FileProvider")
+            from jnius import autoclass
+            Intent         = autoclass("android.content.Intent")
+            Uri            = autoclass("android.net.Uri")
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            File           = autoclass("java.io.File")
 
             ctx = PythonActivity.mActivity
 
-            # Формируем URI через FileProvider (Android 7+)
+            # Используем file:// URI напрямую — FileProvider требует сложной настройки
             java_file = File(ovpn_path)
-            authority = ctx.getPackageName() + ".fileprovider"
-
-            try:
-                uri = FileProvider.getUriForFile(ctx, authority, java_file)
-            except Exception:
-                # Фолбэк: прямой file:// URI (работает до Android 7)
-                uri = Uri.fromFile(java_file)
+            uri = Uri.fromFile(java_file)
 
             intent = Intent(Intent.ACTION_VIEW)
             intent.setDataAndType(uri, "application/x-openvpn-profile")
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
-            # Если ics-openvpn установлен — откроется он напрямую
-            intent.setPackage("de.blinkt.openvpn")
+            # НЕ ставим setPackage — пусть Android сам найдёт OpenVPN for Android
+            # intent.setPackage("de.blinkt.openvpn")  # закомментировано намеренно
 
             ctx.startActivity(intent)
             print(f"[VPN] Intent отправлен: {server_name}")
-
-            # Помечаем как "подключается" — ics-openvpn сам управляет соединением
             Clock.schedule_once(lambda dt: self._on_connecting_intent_sent(), 0.5)
 
         except Exception as e:
+            err_msg = str(e)
             write_crash_log(type(e), e, e.__traceback__)
-            print(f"[VPN] Intent error: {e}")
-            # ics-openvpn не установлен — предложим установить
+            print(f"[VPN] Intent error: {err_msg}")
+
+            # Пробуем запустить ics-openvpn напрямую по пакету
+            try:
+                from jnius import autoclass
+                Intent         = autoclass("android.content.Intent")
+                PythonActivity = autoclass("org.kivy.android.PythonActivity")
+                ctx = PythonActivity.mActivity
+
+                pm = ctx.getPackageManager()
+                launch_intent = pm.getLaunchIntentForPackage("de.blinkt.openvpn")
+                if launch_intent is not None:
+                    launch_intent.addFlags(
+                        autoclass("android.content.Intent").FLAG_ACTIVITY_NEW_TASK
+                    )
+                    ctx.startActivity(launch_intent)
+                    Clock.schedule_once(lambda dt: self._on_connecting_intent_sent(), 0.5)
+                    return
+            except Exception:
+                pass
+
             Clock.schedule_once(lambda dt: self._prompt_install_openvpn(), 0)
 
     def _prompt_install_openvpn(self):
