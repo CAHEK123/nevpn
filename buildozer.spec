@@ -19,7 +19,12 @@ fullscreen = 0
 
 icon.filename = images/logo_icon.png
 
-android.permissions = INTERNET
+# INTERNET — для VPN Gate API
+# QUERY_ALL_PACKAGES — чтобы проверить наличие ics-openvpn
+android.permissions = INTERNET,QUERY_ALL_PACKAGES
+
+# FileProvider для передачи .ovpn файла в ics-openvpn (Android 7+)
+android.manifest.placeholders = applicationId:org.nevpn
 
 android.minapi = 26
 android.api = 33
@@ -28,6 +33,9 @@ android.accept_sdk_license = True
 android.archs = arm64-v8a
 android.allow_backup = False
 android.enable_androidx = True
+
+# FileProvider — добавляем в AndroidManifest через p4a хук
+android.add_providers = org.nevpn.NevpnFileProvider:androidx.core.content.FileProvider
 
 android.logcat_filters = *:S python:D
 

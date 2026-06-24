@@ -8,6 +8,13 @@ import traceback
 import os
 import datetime
 import threading
+import urllib.request
+import urllib.error
+import csv
+import io
+import base64
+import time
+
 
 
 # ══ Crash Log ════════════════════════════════════════════════
@@ -134,9 +141,10 @@ from kivy.lang import Builder
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.core.window import Window
 from kivy.logger import Logger
-from kivy.properties import StringProperty, BooleanProperty
+from kivy.properties import StringProperty, BooleanProperty, ListProperty
 from kivy.metrics import dp
 from kivy.animation import Animation
+from kivy.clock import Clock
 from kivy.utils import platform
 
 try:
@@ -144,6 +152,7 @@ try:
         Window.size = (360, 640)
 except Exception:
     pass
+
 
 
 KV = '''
@@ -858,10 +867,10 @@ WindowManager:
 
         Widget:
             size_hint_y: None
-            height: "20dp"
+            height: "16dp"
 
         MDLabel:
-            text: "Доступные серверы"
+            text: "Серверы VPN Gate"
             bold: True
             font_style: "H6"
             theme_text_color: "Custom"
@@ -870,179 +879,87 @@ WindowManager:
             size_hint_y: None
             height: "40dp"
 
+        # ── Статус загрузки ──
+        AnchorLayout:
+            size_hint_y: None
+            height: "38dp"
+            MDCard:
+                adaptive_size: True
+                radius: [12]
+                md_bg_color: 0.93, 0.95, 1.0, 1
+                padding: [14, 6]
+                elevation: 1
+                MDBoxLayout:
+                    spacing: 6
+                    adaptive_size: True
+                    MDIcon:
+                        id: loading_icon
+                        icon: "cloud-download-outline"
+                        size_hint: None, None
+                        size: "18dp", "18dp"
+                        pos_hint: {"center_y": .5}
+                        theme_text_color: "Custom"
+                        text_color: 0.25, 0.45, 0.9, 1
+                        font_size: "16sp"
+                    MDLabel:
+                        id: loading_label
+                        text: "Загрузка серверов..."
+                        adaptive_size: True
+                        font_style: "Caption"
+                        theme_text_color: "Custom"
+                        text_color: 0.3, 0.3, 0.5, 1
+                        pos_hint: {"center_y": .5}
+
         Widget:
             size_hint_y: None
-            height: "20dp"
+            height: "8dp"
 
-        MDBoxLayout:
-            orientation: 'vertical'
-            spacing: "10dp"
+        # ── Кнопка обновить ──
+        AnchorLayout:
             size_hint_y: None
-            height: self.minimum_height
-
+            height: "32dp"
             MDCard:
-                size_hint_y: None
-                height: "60dp"
+                adaptive_size: True
                 radius: [16]
                 md_bg_color: 0.95, 0.95, 0.98, 1
-                elevation: 2
+                elevation: 1
                 ripple_behavior: True
-                padding: [16, 0]
-                on_release: app.root.get_screen('servers').select_server("Нидерланды")
+                padding: [12, 5]
+                on_release: root.refresh_servers()
                 MDBoxLayout:
-                    spacing: 14
-                    MDBoxLayout:
+                    spacing: 5
+                    adaptive_size: True
+                    MDIcon:
+                        icon: "refresh"
                         size_hint: None, None
-                        size: "38dp", "38dp"
+                        size: "16dp", "16dp"
                         pos_hint: {"center_y": .5}
-                        AnchorLayout:
-                            Image:
-                                source: "images/flag_nl.png"
-                                size_hint: None, None
-                                size: "30dp", "22dp"
-                                pos_hint: {"center_x": .5, "center_y": .5}
-                    MDLabel:
-                        text: "Нидерланды"
                         theme_text_color: "Custom"
-                        text_color: 0.1, 0.1, 0.1, 1
-                        valign: "middle"
-                        size_hint_x: 1
-                    MDBoxLayout:
-                        size_hint: None, None
-                        size: "38dp", "38dp"
+                        text_color: 0.4, 0.4, 0.55, 1
+                        font_size: "14sp"
+                    MDLabel:
+                        text: "Обновить"
+                        adaptive_size: True
+                        font_style: "Caption"
+                        theme_text_color: "Custom"
+                        text_color: 0.4, 0.4, 0.55, 1
                         pos_hint: {"center_y": .5}
-                        AnchorLayout:
-                            MDIcon:
-                                icon: "chevron-right"
-                                size_hint: None, None
-                                size: "22dp", "22dp"
-                                pos_hint: {"center_x": .5, "center_y": .5}
-                                theme_text_color: "Custom"
-                                text_color: 0.7, 0.7, 0.7, 1
-                                font_size: "20sp"
 
-            MDCard:
-                size_hint_y: None
-                height: "60dp"
-                radius: [16]
-                md_bg_color: 0.95, 0.95, 0.98, 1
-                elevation: 2
-                ripple_behavior: True
-                padding: [16, 0]
-                on_release: app.root.get_screen('servers').select_server("США")
-                MDBoxLayout:
-                    spacing: 14
-                    MDBoxLayout:
-                        size_hint: None, None
-                        size: "38dp", "38dp"
-                        pos_hint: {"center_y": .5}
-                        AnchorLayout:
-                            Image:
-                                source: "images/flag_us.png"
-                                size_hint: None, None
-                                size: "30dp", "22dp"
-                                pos_hint: {"center_x": .5, "center_y": .5}
-                    MDLabel:
-                        text: "США"
-                        theme_text_color: "Custom"
-                        text_color: 0.1, 0.1, 0.1, 1
-                        valign: "middle"
-                        size_hint_x: 1
-                    MDBoxLayout:
-                        size_hint: None, None
-                        size: "38dp", "38dp"
-                        pos_hint: {"center_y": .5}
-                        AnchorLayout:
-                            MDIcon:
-                                icon: "chevron-right"
-                                size_hint: None, None
-                                size: "22dp", "22dp"
-                                pos_hint: {"center_x": .5, "center_y": .5}
-                                theme_text_color: "Custom"
-                                text_color: 0.7, 0.7, 0.7, 1
-                                font_size: "20sp"
+        Widget:
+            size_hint_y: None
+            height: "10dp"
 
-            MDCard:
+        # ── Динамический список серверов ──
+        ScrollView:
+            do_scroll_x: False
+            MDBoxLayout:
+                id: servers_list
+                orientation: 'vertical'
+                spacing: "8dp"
                 size_hint_y: None
-                height: "60dp"
-                radius: [16]
-                md_bg_color: 0.95, 0.95, 0.98, 1
-                elevation: 2
-                ripple_behavior: True
-                padding: [16, 0]
-                on_release: app.root.get_screen('servers').select_server("Япония")
-                MDBoxLayout:
-                    spacing: 14
-                    MDBoxLayout:
-                        size_hint: None, None
-                        size: "38dp", "38dp"
-                        pos_hint: {"center_y": .5}
-                        AnchorLayout:
-                            Image:
-                                source: "images/flag_jp.png"
-                                size_hint: None, None
-                                size: "30dp", "22dp"
-                                pos_hint: {"center_x": .5, "center_y": .5}
-                    MDLabel:
-                        text: "Япония"
-                        theme_text_color: "Custom"
-                        text_color: 0.1, 0.1, 0.1, 1
-                        valign: "middle"
-                        size_hint_x: 1
-                    MDBoxLayout:
-                        size_hint: None, None
-                        size: "38dp", "38dp"
-                        pos_hint: {"center_y": .5}
-                        AnchorLayout:
-                            MDIcon:
-                                icon: "chevron-right"
-                                size_hint: None, None
-                                size: "22dp", "22dp"
-                                pos_hint: {"center_x": .5, "center_y": .5}
-                                theme_text_color: "Custom"
-                                text_color: 0.7, 0.7, 0.7, 1
-                                font_size: "20sp"
+                height: self.minimum_height
+                padding: [0, 0, 0, 16]
 
-            MDCard:
-                size_hint_y: None
-                height: "60dp"
-                radius: [16]
-                md_bg_color: 0.95, 0.95, 0.98, 1
-                elevation: 2
-                ripple_behavior: True
-                padding: [16, 0]
-                on_release: app.root.get_screen('servers').select_server("Германия")
-                MDBoxLayout:
-                    spacing: 14
-                    MDBoxLayout:
-                        size_hint: None, None
-                        size: "38dp", "38dp"
-                        pos_hint: {"center_y": .5}
-                        AnchorLayout:
-                            Image:
-                                source: "images/flag_de.png"
-                                size_hint: None, None
-                                size: "30dp", "22dp"
-                                pos_hint: {"center_x": .5, "center_y": .5}
-                    MDLabel:
-                        text: "Германия"
-                        theme_text_color: "Custom"
-                        text_color: 0.1, 0.1, 0.1, 1
-                        valign: "middle"
-                        size_hint_x: 1
-                    MDBoxLayout:
-                        size_hint: None, None
-                        size: "38dp", "38dp"
-                        pos_hint: {"center_y": .5}
-                        AnchorLayout:
-                            MDIcon:
-                                icon: "chevron-right"
-                                size_hint: None, None
-                                size: "22dp", "22dp"
-                                pos_hint: {"center_x": .5, "center_y": .5}
-                                theme_text_color: "Custom"
-                                text_color: 0.7, 0.7, 0.7, 1
-                                font_size: "20sp"
         Widget:
 
 # ─── ABOUT SCREEN ───────────────────────────────────────────────────
@@ -1681,50 +1598,249 @@ WindowManager:
 '''
 
 
+
 class ServerListItem(MDCard):
     server_name = StringProperty()
     flag_source = StringProperty()
 
 
 class MainScreen(Screen):
-    selected_server = StringProperty("Нидерланды")
+    selected_server = StringProperty("Выберите сервер")
     is_connected = BooleanProperty(False)
     traffic_up = StringProperty("0 B")
     traffic_down = StringProperty("0 B")
+
+    # Хранит dict текущего сервера VPN Gate
+    _current_server = None
+    # Путь к временному .ovpn файлу
+    _ovpn_path = None
+
+    # ── Кнопка питания ───────────────────────────────────────────────
 
     def on_power_press(self, instance):
         anim = (Animation(size=(dp(90), dp(90)), duration=0.08) +
                 Animation(size=(dp(100), dp(100)), duration=0.08))
         anim.start(instance)
-        self.is_connected = not self.is_connected
+
         if self.is_connected:
-            print(f"[VPN] Подключено к серверу: {self.selected_server}")
-            self.traffic_up = "1.2 KB"
-            self.traffic_down = "3.4 KB"
+            self._disconnect_vpn()
         else:
-            print("[VPN] Отключено")
-            self.traffic_up = "0 B"
-            self.traffic_down = "0 B"
+            if self._current_server:
+                self.connect_vpngate(self._current_server)
+            else:
+                # Нет сервера — переход на экран выбора
+                self.manager.current = 'servers'
+
+    # ── Подключение через ics-openvpn ────────────────────────────────
+
+    def connect_vpngate(self, srv):
+        """
+        Декодирует .ovpn конфиг из base64, сохраняет в файл,
+        запускает ics-openvpn (de.blinkt.openvpn) через Intent.
+        Работает на Android; на десктопе — имитация.
+        """
+        self._current_server = srv
+        self._set_status_connecting()
+
+        try:
+            ovpn_data = base64.b64decode(srv["ovpn_b64"]).decode("utf-8", errors="replace")
+        except Exception as e:
+            print(f"[VPN] base64 decode error: {e}")
+            self._set_status_error()
+            return
+
+        # Сохраняем .ovpn во временный файл
+        ovpn_path = self._save_ovpn(ovpn_data, srv.get("country", "XX"))
+        if not ovpn_path:
+            self._set_status_error()
+            return
+        self._ovpn_path = ovpn_path
+
+        if platform == "android":
+            self._launch_openvpn_android(ovpn_path, srv["name"])
+        else:
+            # Десктоп: имитация для разработки
+            print(f"[VPN-DEV] Would launch OpenVPN with: {ovpn_path}")
+            Clock.schedule_once(lambda dt: self._on_connected(), 1.5)
+
+    def _save_ovpn(self, ovpn_data, country_code):
+        """Сохраняет .ovpn в кэш-директорию приложения."""
+        try:
+            if platform == "android":
+                from jnius import autoclass
+                ctx = autoclass("org.kivy.android.PythonActivity").mActivity
+                cache_dir = ctx.getCacheDir().getAbsolutePath()
+            else:
+                cache_dir = os.path.dirname(os.path.abspath(__file__))
+
+            os.makedirs(cache_dir, exist_ok=True)
+            path = os.path.join(cache_dir, f"nevpn_{country_code}.ovpn")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(ovpn_data)
+            print(f"[VPN] .ovpn сохранён: {path}")
+            return path
+        except Exception as e:
+            print(f"[VPN] Ошибка сохранения .ovpn: {e}")
+            return None
+
+    def _launch_openvpn_android(self, ovpn_path, server_name):
+        """
+        Запускает ics-openvpn (пакет de.blinkt.openvpn) через Android Intent.
+        ics-openvpn должен быть установлен отдельно.
+        Скачать: https://f-droid.org/packages/de.blinkt.openvpn/
+        """
+        try:
+            from jnius import autoclass, cast
+            from android import activity  # type: ignore
+
+            Intent          = autoclass("android.content.Intent")
+            Uri             = autoclass("android.net.Uri")
+            PythonActivity  = autoclass("org.kivy.android.PythonActivity")
+            File            = autoclass("java.io.File")
+            FileProvider    = autoclass("androidx.core.content.FileProvider")
+
+            ctx = PythonActivity.mActivity
+
+            # Формируем URI через FileProvider (Android 7+)
+            java_file = File(ovpn_path)
+            authority = ctx.getPackageName() + ".fileprovider"
+
+            try:
+                uri = FileProvider.getUriForFile(ctx, authority, java_file)
+            except Exception:
+                # Фолбэк: прямой file:// URI (работает до Android 7)
+                uri = Uri.fromFile(java_file)
+
+            intent = Intent(Intent.ACTION_VIEW)
+            intent.setDataAndType(uri, "application/x-openvpn-profile")
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            # Если ics-openvpn установлен — откроется он напрямую
+            intent.setPackage("de.blinkt.openvpn")
+
+            ctx.startActivity(intent)
+            print(f"[VPN] Intent отправлен: {server_name}")
+
+            # Помечаем как "подключается" — ics-openvpn сам управляет соединением
+            Clock.schedule_once(lambda dt: self._on_connecting_intent_sent(), 0.5)
+
+        except Exception as e:
+            write_crash_log(type(e), e, e.__traceback__)
+            print(f"[VPN] Intent error: {e}")
+            # ics-openvpn не установлен — предложим установить
+            Clock.schedule_once(lambda dt: self._prompt_install_openvpn(), 0)
+
+    def _prompt_install_openvpn(self):
+        """Открывает F-Droid / Play страницу ics-openvpn для установки."""
+        self._set_status_error()
+        try:
+            from jnius import autoclass
+            Intent         = autoclass("android.content.Intent")
+            Uri            = autoclass("android.net.Uri")
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            ctx = PythonActivity.mActivity
+
+            # Пробуем F-Droid, потом Play Store
+            for url in [
+                "market://details?id=de.blinkt.openvpn",
+                "https://f-droid.org/packages/de.blinkt.openvpn/",
+            ]:
+                try:
+                    i = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    ctx.startActivity(i)
+                    break
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"[VPN] Не удалось открыть магазин: {e}")
+
+        # Обновляем UI
+        try:
+            self.ids.status_label.text = "Установите\nics-openvpn"
+            self.ids.status_label.text_color = (0.9, 0.4, 0.1, 1)
+        except Exception:
+            pass
+
+    def _disconnect_vpn(self):
+        """Отключение: посылает STOP Intent в ics-openvpn."""
+        if platform == "android":
+            try:
+                from jnius import autoclass
+                Intent         = autoclass("android.content.Intent")
+                PythonActivity = autoclass("org.kivy.android.PythonActivity")
+                ctx = PythonActivity.mActivity
+
+                intent = Intent("de.blinkt.openvpn.DISCONNECT_VPN")
+                intent.setPackage("de.blinkt.openvpn")
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                ctx.startActivity(intent)
+            except Exception as e:
+                print(f"[VPN] Disconnect error: {e}")
+
+        self.is_connected = False
+        self.traffic_up = "0 B"
+        self.traffic_down = "0 B"
         self.update_ui()
+
+    # ── Состояния UI ─────────────────────────────────────────────────
+
+    def _on_connected(self):
+        self.is_connected = True
+        self.traffic_up = "↑ Активно"
+        self.traffic_down = "↓ Активно"
+        self.update_ui()
+
+    def _on_connecting_intent_sent(self):
+        """После отправки Intent — показываем промежуточный статус."""
+        try:
+            self.ids.status_label.text = "Запуск VPN..."
+            self.ids.status_label.text_color = (0.8, 0.6, 0.1, 1)
+            self.ids.power_icon.icon = "loading"
+            self.ids.power_button.md_bg_color = (0.8, 0.6, 0.1, 1)
+        except Exception:
+            pass
+
+    def _set_status_connecting(self):
+        try:
+            self.ids.status_label.text = "Подключение..."
+            self.ids.status_label.text_color = (0.75, 0.55, 0.1, 1)
+            self.ids.power_icon.icon = "power-plug-outline"
+            self.ids.power_button.md_bg_color = (0.75, 0.55, 0.1, 1)
+        except Exception:
+            pass
+
+    def _set_status_error(self):
+        try:
+            self.ids.status_label.text = "Ошибка"
+            self.ids.status_label.text_color = (0.85, 0.2, 0.2, 1)
+            self.ids.power_icon.icon = "power-plug-off-outline"
+            self.ids.power_button.md_bg_color = (0.85, 0.2, 0.2, 1)
+        except Exception:
+            pass
 
     def on_is_connected(self, instance, value):
         self.update_ui()
 
     def update_ui(self):
-        status_label = self.ids.status_label
-        power_button = self.ids.power_button
-        power_icon = self.ids.power_icon
+        try:
+            status_label = self.ids.status_label
+            power_button = self.ids.power_button
+            power_icon = self.ids.power_icon
 
-        if self.is_connected:
-            status_label.text = "Подключено"
-            status_label.text_color = (0.2, 0.7, 0.35, 1)
-            power_icon.icon = "power-plug"
-            power_button.md_bg_color = (0.15, 0.72, 0.35, 1)
-        else:
-            status_label.text = "Connect"
-            status_label.text_color = (0.55, 0.55, 0.68, 1)
-            power_icon.icon = "power-plug-outline"
-            power_button.md_bg_color = (0.2, 0.4, 0.9, 1)
+            if self.is_connected:
+                status_label.text = "Подключено"
+                status_label.text_color = (0.2, 0.7, 0.35, 1)
+                power_icon.icon = "power-plug"
+                power_button.md_bg_color = (0.15, 0.72, 0.35, 1)
+            else:
+                status_label.text = "Connect"
+                status_label.text_color = (0.55, 0.55, 0.68, 1)
+                power_icon.icon = "power-plug-outline"
+                power_button.md_bg_color = (0.2, 0.4, 0.9, 1)
+        except Exception:
+            pass
 
     def on_kv_post(self, base_widget):
         try:
@@ -1773,11 +1889,250 @@ class SettingsScreen(Screen):
 
 
 class ServersScreen(Screen):
-    def select_server(self, server_name):
+    """
+    Загружает серверы с VPN Gate API, показывает список.
+    При выборе — сохраняет .ovpn в кэш и запускает ics-openvpn через Intent.
+    """
+
+    # ── VPN Gate API ──────────────────────────────────────────────────
+    VPNGATE_URL = "https://www.vpngate.net/api/iphone/"
+
+    # Флаги стран: ISO-код → emoji
+    FLAGS = {
+        "JP": "🇯🇵", "US": "🇺🇸", "KR": "🇰🇷", "DE": "🇩🇪",
+        "NL": "🇳🇱", "FR": "🇫🇷", "GB": "🇬🇧", "CA": "🇨🇦",
+        "SG": "🇸🇬", "RU": "🇷🇺", "IN": "🇮🇳", "AU": "🇦🇺",
+        "TH": "🇹🇭", "UA": "🇺🇦", "BR": "🇧🇷", "SE": "🇸🇪",
+        "CH": "🇨🇭", "IT": "🇮🇹", "PL": "🇵🇱", "CZ": "🇨🇿",
+    }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._servers = []       # список dict: {name, ip, speed, score, ovpn_b64, country}
+        self._loading = False
+
+    def on_enter(self):
+        """Вызывается каждый раз при переходе на экран."""
+        if not self._servers:
+            self.refresh_servers()
+
+    def refresh_servers(self):
+        if self._loading:
+            return
+        self._loading = True
+        self._set_status("⏳  Загрузка серверов VPN Gate...", (0.3, 0.3, 0.5, 1))
+        # Очистить список
+        Clock.schedule_once(lambda dt: self._clear_list(), 0)
+        # Загрузить в фоне
+        t = threading.Thread(target=self._fetch_servers, daemon=True)
+        t.start()
+
+    def _fetch_servers(self):
+        """Фоновый поток: скачивает CSV от VPN Gate."""
+        try:
+            req = urllib.request.Request(
+                self.VPNGATE_URL,
+                headers={"User-Agent": "NEVPN/1.0"}
+            )
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                raw = resp.read().decode("utf-8", errors="ignore")
+        except Exception as e:
+            Clock.schedule_once(
+                lambda dt: self._set_status(
+                    f"❌  Ошибка сети: {e}\nПроверьте интернет-соединение",
+                    (0.8, 0.2, 0.2, 1)
+                ), 0
+            )
+            self._loading = False
+            return
+
+        try:
+            servers = self._parse_vpngate_csv(raw)
+        except Exception as e:
+            Clock.schedule_once(
+                lambda dt: self._set_status(f"❌  Ошибка парсинга: {e}", (0.8, 0.2, 0.2, 1)), 0
+            )
+            self._loading = False
+            return
+
+        self._servers = servers
+        self._loading = False
+        Clock.schedule_once(lambda dt: self._populate_list(servers), 0)
+
+    def _parse_vpngate_csv(self, raw_text):
+        """Парсит CSV VPN Gate. Возвращает топ-20 серверов по скорости."""
+        # VPN Gate CSV начинается с '*vpn_servers\r\n', заканчивается '*\r\n'
+        lines = raw_text.splitlines()
+        # убрать первую и последнюю строки-маркеры
+        csv_lines = [l for l in lines if not l.startswith("*")]
+        csv_text = "\n".join(csv_lines)
+
+        reader = csv.DictReader(io.StringIO(csv_text))
+        servers = []
+        for row in reader:
+            try:
+                ovpn_b64 = row.get("OpenVPN_ConfigData_Base64", "").strip()
+                if not ovpn_b64:
+                    continue
+                country_code = row.get("CountryShort", "??").strip().upper()
+                country_long = row.get("CountryLong", "Unknown").strip()
+                ip = row.get("IP", "").strip()
+                speed_str = row.get("Speed", "0").strip()
+                score_str = row.get("Score", "0").strip()
+                speed = int(speed_str) if speed_str.isdigit() else 0
+                score = int(score_str) if score_str.isdigit() else 0
+                sessions_str = row.get("NumVpnSessions", "0").strip()
+                sessions = int(sessions_str) if sessions_str.isdigit() else 0
+
+                flag = self.FLAGS.get(country_code, "🌐")
+                speed_mbps = speed / 1_000_000
+                display_name = f"{flag} {country_long}"
+
+                servers.append({
+                    "name": display_name,
+                    "country": country_code,
+                    "ip": ip,
+                    "speed": speed,
+                    "speed_mbps": speed_mbps,
+                    "score": score,
+                    "sessions": sessions,
+                    "ovpn_b64": ovpn_b64,
+                })
+            except Exception:
+                continue
+
+        # Сортировка: по скорости убывает, берём топ-25
+        servers.sort(key=lambda s: s["speed"], reverse=True)
+        return servers[:25]
+
+    def _clear_list(self):
+        try:
+            self.ids.servers_list.clear_widgets()
+        except Exception:
+            pass
+
+    def _set_status(self, text, color=(0.3, 0.3, 0.5, 1)):
+        try:
+            self.ids.loading_label.text = text
+            self.ids.loading_label.text_color = color
+            icon = "check-circle-outline" if "✅" in text else (
+                "alert-circle-outline" if "❌" in text else "cloud-download-outline"
+            )
+            self.ids.loading_icon.icon = icon
+        except Exception:
+            pass
+
+    def _populate_list(self, servers):
+        """Добавляет карточки серверов в ScrollView."""
+        if not servers:
+            self._set_status("❌  Серверы не найдены", (0.8, 0.2, 0.2, 1))
+            return
+
+        self._set_status(
+            f"✅  Найдено серверов: {len(servers)}",
+            (0.15, 0.65, 0.3, 1)
+        )
+        self._clear_list()
+
+        from kivymd.uix.card import MDCard
+        from kivy.uix.boxlayout import BoxLayout
+        from kivymd.uix.label import MDLabel
+        from kivy.metrics import dp as _dp
+
+        box = self.ids.servers_list
+
+        for srv in servers:
+            speed_text = f"{srv['speed_mbps']:.1f} Mbps"
+            sessions_text = f"{srv['sessions']} польз."
+
+            # Создаём карточку через Builder для совместимости со стилями
+            from kivy.lang import Builder as _B
+            card_kv = f"""
+MDCard:
+    size_hint_y: None
+    height: "68dp"
+    radius: [16]
+    md_bg_color: 0.95, 0.95, 0.98, 1
+    elevation: 2
+    ripple_behavior: True
+    padding: [14, 0]
+    MDBoxLayout:
+        spacing: 10
+        MDLabel:
+            text: "{srv['name']}"
+            size_hint_x: 1
+            theme_text_color: "Custom"
+            text_color: 0.1, 0.1, 0.1, 1
+            valign: "middle"
+            bold: True
+            font_size: "14sp"
+        MDBoxLayout:
+            orientation: "vertical"
+            size_hint: None, None
+            size: "80dp", "48dp"
+            pos_hint: {{"center_y": .5}}
+            spacing: 2
+            MDLabel:
+                text: "{speed_text}"
+                font_style: "Caption"
+                theme_text_color: "Custom"
+                text_color: 0.2, 0.55, 0.85, 1
+                halign: "right"
+                adaptive_size: True
+            MDLabel:
+                text: "{sessions_text}"
+                font_style: "Caption"
+                theme_text_color: "Custom"
+                text_color: 0.55, 0.55, 0.65, 1
+                halign: "right"
+                adaptive_size: True
+        MDBoxLayout:
+            size_hint: None, None
+            size: "28dp", "28dp"
+            pos_hint: {{"center_y": .5}}
+            AnchorLayout:
+                MDIcon:
+                    icon: "chevron-right"
+                    size_hint: None, None
+                    size: "20dp", "20dp"
+                    pos_hint: {{"center_x": .5, "center_y": .5}}
+                    theme_text_color: "Custom"
+                    text_color: 0.7, 0.7, 0.7, 1
+                    font_size: "18sp"
+"""
+            try:
+                card = _B.load_string(card_kv)
+                # Биндим нажатие — передаём srv как замыкание
+                def make_handler(s):
+                    def handler(instance):
+                        self.select_server(s)
+                    return handler
+                card.bind(on_release=make_handler(srv))
+                box.add_widget(card)
+            except Exception as e:
+                print(f"[Servers] Card error: {e}")
+
+    # ── Выбор и подключение ──────────────────────────────────────────
+
+    def select_server(self, srv):
+        """Сохраняет .ovpn и запускает ics-openvpn."""
+        if isinstance(srv, str):
+            # Старый вызов из KV (на всякий случай)
+            main_screen = self.manager.get_screen('main')
+            main_screen.selected_server = srv
+            self.manager.current = 'main'
+            return
+
         main_screen = self.manager.get_screen('main')
-        main_screen.selected_server = server_name
-        print(f"[Servers] Выбран сервер: {server_name}")
+        main_screen.selected_server = srv["name"]
+        main_screen._current_server = srv
+
+        print(f"[Servers] Выбран: {srv['name']} / {srv['ip']}")
         self.manager.current = 'main'
+
+        # Запускаем подключение
+        Clock.schedule_once(lambda dt: main_screen.connect_vpngate(srv), 0.3)
+
 
 
 class ProtocolScreen(Screen):
