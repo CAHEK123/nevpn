@@ -1930,11 +1930,18 @@ class ServersScreen(Screen):
     def _fetch_servers(self):
         """Фоновый поток: скачивает CSV от VPN Gate."""
         try:
+            import ssl
+            # На Android нет системных CA-сертификатов в Kivy —
+            # отключаем проверку SSL (данные публичные, не чувствительные)
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+
             req = urllib.request.Request(
                 self.VPNGATE_URL,
                 headers={"User-Agent": "NEVPN/1.0"}
             )
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(req, timeout=15, context=ctx) as resp:
                 raw = resp.read().decode("utf-8", errors="ignore")
         except Exception as e:
             msg = f"❌  Ошибка сети: {e}\nПроверьте интернет"
