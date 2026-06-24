@@ -808,6 +808,63 @@ WindowManager:
                                 text_color: 0.7, 0.7, 0.7, 1
                                 font_size: "20sp"
 
+            # Импорт .ovpn
+            MDCard:
+                size_hint_y: None
+                height: "60dp"
+                radius: [16]
+                md_bg_color: 0.95, 0.95, 0.98, 1
+                elevation: 2
+                ripple_behavior: True
+                padding: [16, 0, 16, 0]
+                on_release: root.open_file_picker()
+                MDBoxLayout:
+                    spacing: 14
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "file-upload-outline"
+                                size_hint: None, None
+                                size: "26dp", "26dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.25, 0.45, 0.9, 1
+                                font_size: "22sp"
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        size_hint_x: 1
+                        spacing: 2
+                        MDLabel:
+                            text: "Импорт .ovpn"
+                            bold: True
+                            theme_text_color: "Custom"
+                            text_color: 0.1, 0.1, 0.1, 1
+                            valign: "middle"
+                            adaptive_size: True
+                        MDLabel:
+                            id: ovpn_status_label
+                            text: app.custom_ovpn_display
+                            font_style: "Caption"
+                            theme_text_color: "Custom"
+                            text_color: 0.4, 0.7, 0.4, 1
+                            adaptive_size: True
+                    MDBoxLayout:
+                        size_hint: None, None
+                        size: "38dp", "38dp"
+                        pos_hint: {"center_y": .5}
+                        AnchorLayout:
+                            MDIcon:
+                                icon: "chevron-right"
+                                size_hint: None, None
+                                size: "22dp", "22dp"
+                                pos_hint: {"center_x": .5, "center_y": .5}
+                                theme_text_color: "Custom"
+                                text_color: 0.7, 0.7, 0.7, 1
+                                font_size: "20sp"
+
         Widget:
 
 # ─── SERVERS SCREEN ─────────────────────────────────────────────────
@@ -1614,6 +1671,9 @@ class MainScreen(Screen):
     _current_server = None
     # Путь к временному .ovpn файлу
     _ovpn_path = None
+    # Пользовательский .ovpn конфиг (загружен вручную)
+    _custom_ovpn_data = None
+    _custom_ovpn_name = None
 
     # ── Кнопка питания ───────────────────────────────────────────────
 
@@ -1625,7 +1685,10 @@ class MainScreen(Screen):
         if self.is_connected:
             self._disconnect_vpn()
         else:
-            if self._current_server:
+            if self._custom_ovpn_data:
+                # Пользователь загрузил свой .ovpn — используем его
+                self.connect_custom_ovpn(self._custom_ovpn_data, self._custom_ovpn_name)
+            elif self._current_server:
                 self.connect_vpngate(self._current_server)
             else:
                 # Нет сервера — переход на экран выбора
@@ -1663,6 +1726,24 @@ class MainScreen(Screen):
             print(f"[VPN-DEV] Would launch OpenVPN with: {ovpn_path}")
             Clock.schedule_once(lambda dt: self._on_connected(), 1.5)
 
+    def connect_custom_ovpn(self, ovpn_data, name=None):
+        """
+        Подключение с помощью пользовательского .ovpn файла.
+        Файл уже в памяти — просто сохраняем и запускаем ics-openvpn.
+        """
+        self._set_status_connecting()
+        ovpn_path = self._save_ovpn(ovpn_data, "custom")
+        if not ovpn_path:
+            self._set_status_error()
+            return
+        self._ovpn_path = ovpn_path
+        display_name = name or "Custom VPN"
+        if platform == "android":
+            self._launch_openvpn_android(ovpn_path, display_name)
+        else:
+            print(f"[VPN-DEV] Would launch OpenVPN with custom config: {ovpn_path}")
+            Clock.schedule_once(lambda dt: self._on_connected(), 1.5)
+
     def _save_ovpn(self, ovpn_data, country_code):
         """Сохраняет .ovpn в кэш-директорию приложения."""
         try:
@@ -1685,57 +1766,59 @@ class MainScreen(Screen):
 
     def _launch_openvpn_android(self, ovpn_path, server_name):
         """
-        Запускает ics-openvpn через Android Intent.
-        Пакет: de.blinkt.openvpn (F-Droid: OpenVPN for Android)
+        Передаёт .ovpn конфиг в OpenVPN for Android через Intent extras.
+        Это официальный API ics-openvpn — не требует FileProvider.
         """
         try:
+            # Читаем .ovpn файл который уже сохранили
+            with open(ovpn_path, "r", encoding="utf-8") as f:
+                ovpn_config = f.read()
+
             from jnius import autoclass
             Intent         = autoclass("android.content.Intent")
-            Uri            = autoclass("android.net.Uri")
             PythonActivity = autoclass("org.kivy.android.PythonActivity")
-            File           = autoclass("java.io.File")
 
             ctx = PythonActivity.mActivity
 
-            # Используем file:// URI напрямую — FileProvider требует сложной настройки
-            java_file = File(ovpn_path)
-            uri = Uri.fromFile(java_file)
-
-            intent = Intent(Intent.ACTION_VIEW)
-            intent.setDataAndType(uri, "application/x-openvpn-profile")
+            # Официальный Intent API ics-openvpn:
+            # https://github.com/schwabe/ics-openvpn/blob/master/main/src/main/java/de/blinkt/openvpn/api/
+            intent = Intent("de.blinkt.openvpn.action.START_VPN")
+            intent.setPackage("de.blinkt.openvpn")
+            intent.putExtra("de.blinkt.openvpn.extra.PROFILEUUID", "")
+            intent.putExtra("net.openvpn.openvpn.OVPNPROFILE", ovpn_config)
+            intent.putExtra("de.blinkt.openvpn.extra.NAME", server_name)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            # НЕ ставим setPackage — пусть Android сам найдёт OpenVPN for Android
-            # intent.setPackage("de.blinkt.openvpn")  # закомментировано намеренно
 
             ctx.startActivity(intent)
-            print(f"[VPN] Intent отправлен: {server_name}")
+            print(f"[VPN] START_VPN Intent отправлен: {server_name}")
             Clock.schedule_once(lambda dt: self._on_connecting_intent_sent(), 0.5)
 
-        except Exception as e:
-            err_msg = str(e)
-            write_crash_log(type(e), e, e.__traceback__)
-            print(f"[VPN] Intent error: {err_msg}")
-
-            # Пробуем запустить ics-openvpn напрямую по пакету
+        except Exception as e1:
+            print(f"[VPN] START_VPN failed: {e1}, пробуем импорт профиля...")
+            # Фолбэк: передаём конфиг как строку через IMPORT_PROFILE
             try:
+                with open(ovpn_path, "r", encoding="utf-8") as f:
+                    ovpn_config = f.read()
+
                 from jnius import autoclass
                 Intent         = autoclass("android.content.Intent")
                 PythonActivity = autoclass("org.kivy.android.PythonActivity")
                 ctx = PythonActivity.mActivity
 
-                pm = ctx.getPackageManager()
-                launch_intent = pm.getLaunchIntentForPackage("de.blinkt.openvpn")
-                if launch_intent is not None:
-                    launch_intent.addFlags(
-                        autoclass("android.content.Intent").FLAG_ACTIVITY_NEW_TASK
-                    )
-                    ctx.startActivity(launch_intent)
-                    Clock.schedule_once(lambda dt: self._on_connecting_intent_sent(), 0.5)
-                    return
-            except Exception:
-                pass
+                intent2 = Intent("de.blinkt.openvpn.action.IMPORT_PROFILE")
+                intent2.setPackage("de.blinkt.openvpn")
+                intent2.putExtra("net.openvpn.openvpn.OVPNPROFILE", ovpn_config)
+                intent2.putExtra("de.blinkt.openvpn.extra.NAME", server_name)
+                intent2.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-            Clock.schedule_once(lambda dt: self._prompt_install_openvpn(), 0)
+                ctx.startActivity(intent2)
+                print(f"[VPN] IMPORT_PROFILE отправлен: {server_name}")
+                Clock.schedule_once(lambda dt: self._on_connecting_intent_sent(), 0.5)
+
+            except Exception as e2:
+                write_crash_log(type(e2), e2, e2.__traceback__)
+                print(f"[VPN] Все методы не сработали: {e2}")
+                Clock.schedule_once(lambda dt: self._prompt_install_openvpn(), 0)
 
     def _prompt_install_openvpn(self):
         """Открывает F-Droid / Play страницу ics-openvpn для установки."""
@@ -1892,6 +1975,144 @@ class SettingsScreen(Screen):
             self.ids.killswitch_check.icon = "check-circle-outline"
             self.ids.killswitch_check.text_color = (0.75, 0.75, 0.75, 1)
         anim.start(instance)
+
+    # ── Импорт .ovpn ─────────────────────────────────────────────────
+
+    _PICK_REQUEST = 42          # произвольный код запроса
+
+    def open_file_picker(self):
+        """Открывает системный файловый пикер для выбора .ovpn файла."""
+        if platform == "android":
+            self._open_android_file_picker()
+        else:
+            self._desktop_file_picker()
+
+    # ── Android: системный пикер через SAF (не нужны разрешения) ────
+
+    def _open_android_file_picker(self):
+        try:
+            from jnius import autoclass
+            from android.activity import bind as activity_bind
+
+            Intent = autoclass("android.content.Intent")
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+
+            # Привязываем обработчик результата
+            activity_bind(on_activity_result=self._on_activity_result)
+
+            intent = Intent(Intent.ACTION_GET_CONTENT)
+            intent.setType("*/*")
+            intent.addCategory(Intent.CATEGORY_OPENABLE)
+
+            chooser = Intent.createChooser(intent, "Выбрать .ovpn файл")
+            PythonActivity.mActivity.startActivityForResult(
+                chooser, self._PICK_REQUEST
+            )
+            print("[OVPN Import] File picker launched")
+        except Exception as e:
+            write_crash_log(type(e), e, e.__traceback__)
+            print(f"[OVPN Import] Picker error: {e}")
+
+    def _on_activity_result(self, request_code, result_code, intent):
+        """Вызывается Android после того, как пользователь выбрал файл."""
+        RESULT_OK = -1   # Activity.RESULT_OK
+        if request_code != self._PICK_REQUEST:
+            return
+        if result_code != RESULT_OK or intent is None:
+            print("[OVPN Import] Picker cancelled or failed")
+            return
+
+        uri = intent.getData()
+        if uri is None:
+            print("[OVPN Import] No URI returned")
+            return
+
+        content = self._read_uri_content(uri)
+        filename = self._get_filename_from_uri(uri) or "custom.ovpn"
+
+        if content:
+            Clock.schedule_once(
+                lambda dt: self._on_ovpn_loaded(content, filename), 0
+            )
+        else:
+            print("[OVPN Import] Failed to read file content")
+
+    def _read_uri_content(self, uri):
+        """Читает содержимое файла по URI через ContentResolver."""
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            BufferedReader = autoclass("java.io.BufferedReader")
+            InputStreamReader = autoclass("java.io.InputStreamReader")
+
+            ctx = PythonActivity.mActivity
+            input_stream = ctx.getContentResolver().openInputStream(uri)
+            reader = BufferedReader(InputStreamReader(input_stream, "UTF-8"))
+
+            lines = []
+            line = reader.readLine()
+            while line is not None:
+                lines.append(line)
+                line = reader.readLine()
+            reader.close()
+            return "\n".join(lines)
+        except Exception as e:
+            print(f"[OVPN Import] Read URI error: {e}")
+            return None
+
+    def _get_filename_from_uri(self, uri):
+        """Возвращает отображаемое имя файла по URI."""
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+
+            ctx = PythonActivity.mActivity
+            cursor = ctx.getContentResolver().query(uri, None, None, None, None)
+            if cursor and cursor.moveToFirst():
+                idx = cursor.getColumnIndex("_display_name")
+                if idx >= 0:
+                    name = cursor.getString(idx)
+                    cursor.close()
+                    return name
+                cursor.close()
+        except Exception:
+            pass
+        return None
+
+    # ── Desktop fallback для разработки ─────────────────────────────
+
+    def _desktop_file_picker(self):
+        """На десктопе ищет .ovpn в текущей директории."""
+        import glob
+        files = sorted(glob.glob("*.ovpn"))
+        if files:
+            try:
+                with open(files[0], "r", encoding="utf-8") as f:
+                    content = f.read()
+                self._on_ovpn_loaded(content, os.path.basename(files[0]))
+                print(f"[OVPN Import-DEV] Loaded: {files[0]}")
+            except Exception as e:
+                print(f"[OVPN Import-DEV] Load error: {e}")
+        else:
+            print("[OVPN Import-DEV] No .ovpn files in current directory")
+
+    # ── Применяем загруженный конфиг ────────────────────────────────
+
+    def _on_ovpn_loaded(self, content, filename):
+        """Сохраняет конфиг и обновляет UI главного экрана."""
+        app = MDApp.get_running_app()
+        # Обновляем заметку в настройках
+        app.custom_ovpn_display = filename
+        # Сохраняем данные в главном экране
+        try:
+            ms = app.root.get_screen("main")
+            ms._custom_ovpn_data = content
+            ms._custom_ovpn_name = filename
+            ms._current_server = None          # сбрасываем VPN Gate сервер
+            ms.selected_server = f"📁 {filename}"
+        except Exception as e:
+            print(f"[OVPN Import] UI update error: {e}")
+        print(f"[OVPN Import] Config loaded: {filename} ({len(content)} chars)")
 
 
 class ServersScreen(Screen):
@@ -2218,6 +2439,8 @@ class NEVPNApp(MDApp):
     lang_code        = StringProperty('RU')
     lang_connect     = StringProperty('Connect')
     lang_connected   = StringProperty('Подключено')
+    # Отображаемое имя загруженного .ovpn (пусто = ничего не загружено)
+    custom_ovpn_display = StringProperty("")
     lang_settings    = StringProperty('Язык')
     lang_protocol    = StringProperty('Протокол')
     lang_protocol_sub = StringProperty('Открытый стандарт · надёжный и быстрый')

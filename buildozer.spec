@@ -21,7 +21,8 @@ icon.filename = images/logo_icon.png
 
 # INTERNET — для VPN Gate API
 # QUERY_ALL_PACKAGES — чтобы проверить наличие ics-openvpn
-android.permissions = INTERNET,QUERY_ALL_PACKAGES
+# READ_EXTERNAL_STORAGE — для доступа к .ovpn на Android < 10 (SAF не требует его на 10+)
+android.permissions = INTERNET,QUERY_ALL_PACKAGES,READ_EXTERNAL_STORAGE
 
 # FileProvider для передачи .ovpn файла в ics-openvpn (Android 7+)
 android.manifest.placeholders = applicationId:org.nevpn
